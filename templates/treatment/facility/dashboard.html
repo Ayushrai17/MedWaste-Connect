@@ -1,0 +1,284 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}{{ facility.name }} Console — {{ SITE_NAME }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="container-fluid py-2">
+  <!-- Top Plant Header Banner -->
+  <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white" style="border-left: 6px solid #005B50 !important;">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+      <div>
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <span class="badge rounded-pill text-white" style="background-color: var(--teal-deep);">
+            {{ facility.facility_code }}
+          </span>
+          <span class="badge bg-light text-muted border font-monospace">
+            CTO: {{ facility.license_number }}
+          </span>
+          {% if facility.approval_status == 'APPROVED' %}
+            <span class="badge bg-success-subtle text-success border border-success-subtle">
+              <i class="bi bi-patch-check-fill me-1"></i> SPCB Certified Plant
+            </span>
+          {% else %}
+            <span class="badge bg-warning-subtle text-warning border border-warning-subtle">
+              {{ facility.get_approval_status_display }}
+            </span>
+          {% endif %}
+        </div>
+        <h1 class="h3 fw-bold mb-1" style="color: var(--teal-deep);">
+          {{ facility.name }}
+        </h1>
+        <p class="text-muted small mb-0">
+          <i class="bi bi-geo-alt me-1 text-danger"></i> {{ facility.address }}, {{ facility.district }} &bull; Shift Hours: <strong>{{ facility.operating_hours }}</strong>
+        </p>
+      </div>
+
+      <div class="text-md-end text-nowrap d-flex flex-column gap-2">
+        <div>
+          <span class="small text-muted fw-semibold">Dynamic Operational State:</span>
+          <span class="badge fs-6 ms-1 {% if metrics.dynamic_availability == 'AVAILABLE' %}bg-success{% elif metrics.dynamic_availability == 'NEAR_CAPACITY' %}bg-warning text-dark{% elif metrics.dynamic_availability == 'FULL' %}bg-danger{% else %}bg-secondary{% endif %}">
+            <i class="bi bi-broadcast me-1"></i> {{ metrics.dynamic_availability }}
+          </span>
+        </div>
+        <div class="d-flex gap-2">
+          <a href="{% url 'treatment:facility_incoming_manifests' %}" class="btn btn-sm text-white rounded-pill px-3 fw-semibold" style="background-color: #005B50;">
+            <i class="bi bi-box-arrow-in-down me-1"></i> Receive Consignments
+          </a>
+          <a href="{% url 'treatment:treatment_batch_create' %}" class="btn btn-sm text-white rounded-pill px-3 fw-semibold" style="background-color: #F36B21;">
+            <i class="bi bi-fire me-1"></i> New Treatment Run
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Messages Feedback -->
+  {% if messages %}
+    <div class="mb-4">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show rounded-3 shadow-sm" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <!-- Real-Time Capacity & Plant Status Metrics -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+      <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+        <span class="text-muted small text-uppercase fw-semibold" style="font-size: 0.68rem;">Daily Capacity Limit</span>
+        <div class="h3 fw-bold text-dark mt-2 mb-0">{{ metrics.daily_capacity_kg }} <span class="fs-6 text-muted fw-normal">KG</span></div>
+        <div class="small text-muted mt-1">Authorized statutory ceiling</div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+        <span class="text-muted small text-uppercase fw-semibold" style="font-size: 0.68rem;">Accepted Today</span>
+        <div class="h3 fw-bold text-success mt-2 mb-0">{{ metrics.accepted_today_kg }} <span class="fs-6 text-muted fw-normal">KG</span></div>
+        <div class="small text-muted mt-1">Verified gate intake</div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+        <span class="text-muted small text-uppercase fw-semibold" style="font-size: 0.68rem;">Awaiting Treatment</span>
+        <div class="h3 fw-bold text-warning-emphasis mt-2 mb-0">{{ metrics.awaiting_processing_kg }} <span class="fs-6 text-muted fw-normal">KG</span></div>
+        <div class="small text-muted mt-1">Accepted in quarantine bay</div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+        <span class="text-muted small text-uppercase fw-semibold" style="font-size: 0.68rem;">Capacity Headroom</span>
+        <div class="d-flex align-items-center justify-content-between mt-2">
+          <div class="h3 fw-bold text-dark mb-0">{{ metrics.remaining_capacity_kg }} <span class="fs-6 text-muted fw-normal">KG</span></div>
+          <span class="small fw-semibold text-muted">{{ metrics.utilization_percentage }}% full</span>
+        </div>
+        <div class="progress mt-2" style="height: 6px;">
+          <div class="progress-bar {% if metrics.utilization_percentage >= 90 %}bg-danger{% elif metrics.utilization_percentage >= 70 %}bg-warning{% else %}bg-success{% endif %}" role="progressbar" style="width: {{ metrics.utilization_percentage }}%;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content Grid -->
+  <div class="row g-4 mb-4">
+    <!-- Left Column: Arriving Consignments & Active Receptions -->
+    <div class="col-lg-7">
+      <!-- Inbound Consignments Awaiting Gate Reception -->
+      <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <h5 class="fw-bold mb-0 text-dark">
+              <i class="bi bi-truck me-2 text-primary"></i> Arriving Collections (Gate Check-In)
+            </h5>
+            <div class="text-muted small">Hospital waste consignments collected and transported toward this facility.</div>
+          </div>
+          <a href="{% url 'treatment:facility_incoming_manifests' %}" class="btn btn-sm btn-link text-decoration-none">View All</a>
+        </div>
+
+        {% if incoming_collections %}
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 small">
+              <thead class="table-light text-muted" style="font-size: 0.72rem;">
+                <tr>
+                  <th>Collection Ref</th>
+                  <th>Originating Hospital</th>
+                  <th>Bags &amp; Weight</th>
+                  <th>Collector Driver</th>
+                  <th class="text-end">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for col in incoming_collections %}
+                  <tr>
+                    <td class="font-monospace fw-semibold">
+                      {{ col.reference_number }}
+                    </td>
+                    <td>
+                      <div class="fw-semibold text-dark">{{ col.hospital.organization_name|default:col.hospital.username }}</div>
+                    </td>
+                    <td>
+                      <strong>{{ col.total_bags }}</strong> bags &bull; {{ col.total_weight }} kg
+                    </td>
+                    <td>
+                      <div class="small">{{ col.assigned_collector.get_full_name|default:col.assigned_collector.username }}</div>
+                    </td>
+                    <td class="text-end">
+                      <a href="{% url 'treatment:facility_receive_consignment' col.reference_number %}" class="btn btn-sm text-white rounded-pill px-3" style="background-color: #005B50;">
+                        <i class="bi bi-box-arrow-in-down me-1"></i> Receive Gate
+                      </a>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="text-center py-4 text-muted small bg-light rounded-3">
+            <i class="bi bi-check2-circle fs-3 text-success d-block mb-1"></i>
+            No new arriving collection vehicles awaiting reception gate check-in.
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Active In-Inspection Reception Manifests -->
+      <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <h5 class="fw-bold mb-0 text-dark">
+              <i class="bi bi-qr-code-scan me-2 text-warning"></i> Manifests Under Inspection
+            </h5>
+            <div class="text-muted small">Gate receipts undergoing bag-by-bag QR scanning and acceptance verification.</div>
+          </div>
+          <a href="{% url 'treatment:facility_incoming_manifests' %}?tab=receptions" class="btn btn-sm btn-link text-decoration-none">All Manifests</a>
+        </div>
+
+        {% if active_receptions %}
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 small">
+              <thead class="table-light text-muted" style="font-size: 0.72rem;">
+                <tr>
+                  <th>Manifest Ref</th>
+                  <th>Hospital</th>
+                  <th>Gate Received</th>
+                  <th>Status</th>
+                  <th class="text-end">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for r in active_receptions %}
+                  <tr>
+                    <td class="font-monospace fw-semibold">{{ r.reference_number }}</td>
+                    <td>{{ r.collection_request.hospital.organization_name|default:r.collection_request.hospital.username }}</td>
+                    <td>{{ r.received_at|date:"d M, H:i" }}</td>
+                    <td>
+                      <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">
+                        {{ r.get_status_display }}
+                      </span>
+                    </td>
+                    <td class="text-end">
+                      <a href="{% url 'treatment:facility_reception_detail' r.reference_number %}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                        <i class="bi bi-search me-1"></i> Inspect Bags
+                      </a>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="text-center py-4 text-muted small bg-light rounded-3">
+            No reception manifests currently undergoing verification.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Right Column: Active Treatment Batches & Disposal Status -->
+    <div class="col-lg-5">
+      <!-- Active Treatment Batches -->
+      <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="fw-bold mb-0 text-dark">
+            <i class="bi bi-fire me-2 text-danger"></i> Active Treatment Runs
+          </h5>
+          <a href="{% url 'treatment:treatment_batch_list' %}" class="btn btn-sm btn-link text-decoration-none">View All</a>
+        </div>
+
+        {% if active_batches %}
+          <div class="d-flex flex-column gap-3">
+            {% for b in active_batches %}
+              <div class="p-3 rounded-3 border bg-light">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <span class="font-monospace fw-bold text-dark">{{ b.batch_number }}</span>
+                  <span class="badge {% if b.status == 'IN_PROGRESS' %}bg-primary{% else %}bg-secondary{% endif %}">
+                    {{ b.get_status_display }}
+                  </span>
+                </div>
+                <div class="small text-muted mb-2">
+                  <i class="bi bi-sliders me-1"></i> {{ b.get_treatment_method_display }} &bull; <strong>{{ b.processing_weight }} KG</strong>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                  <span class="small text-muted">Operator: {{ b.operator.username }}</span>
+                  <a href="{% url 'treatment:treatment_batch_detail' b.batch_number %}" class="btn btn-sm btn-outline-dark rounded-pill px-3" style="font-size: 0.75rem;">
+                    Manage Run
+                  </a>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-center py-4 text-muted small bg-light rounded-3">
+            No treatment cycles currently executing.
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Quick Action Cards -->
+      <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+        <h5 class="fw-bold mb-3 text-dark">
+          <i class="bi bi-lightning-charge me-2 text-warning"></i> Operational Shortcuts
+        </h5>
+        <div class="d-flex flex-column gap-2">
+          <a href="{% url 'treatment:treatment_batch_create' %}" class="p-3 rounded-3 border text-decoration-none text-dark d-flex align-items-center justify-content-between hover-shadow">
+            <div>
+              <div class="fw-bold"><i class="bi bi-plus-circle text-success me-2"></i> Schedule Treatment Cycle</div>
+              <div class="small text-muted">Batch accepted waste for incineration or autoclaving</div>
+            </div>
+            <i class="bi bi-chevron-right text-muted"></i>
+          </a>
+          <a href="{% url 'treatment:disposal_record_list' %}" class="p-3 rounded-3 border text-decoration-none text-dark d-flex align-items-center justify-content-between hover-shadow">
+            <div>
+              <div class="fw-bold"><i class="bi bi-award text-primary me-2"></i> Final Residue Disposals</div>
+              <div class="small text-muted">Document ash to hazardous landfill &amp; recycled materials</div>
+            </div>
+            <i class="bi bi-chevron-right text-muted"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,187 @@
+/* ==========================================================================
+   MedWaste Connect — Cinematic Hero Scene Component Stylesheet
+   Static 2.5D Layer Assembly (Stage 2)
+   Strict Palette & Perspective Alignment
+   ========================================================================== */
+
+/* Outer wrapper with healthcare-grade card styling and dual ambient shadow */
+.hero-scene-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 680px;
+  margin: 0 auto;
+  border-radius: var(--radius-glass, 20px);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(244, 235, 214, 0.4) 100%);
+  padding: 0.5rem;
+  box-shadow: 0 16px 40px rgba(20, 31, 43, 0.12), 0 4px 12px rgba(27, 101, 133, 0.08);
+  border: 1px solid rgba(27, 101, 133, 0.12);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hero-scene-wrapper:hover {
+  box-shadow: 0 20px 48px rgba(20, 31, 43, 0.16), 0 6px 16px rgba(27, 101, 133, 0.12);
+}
+
+/* Master 16:9 2.5D Perspective Stage */
+.hero-scene-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1672 / 941;
+  overflow: hidden;
+  border-radius: calc(var(--radius-glass, 20px) - 6px);
+  background-color: transparent;
+  user-select: none;
+}
+
+/* General Layer Rules */
+.hero-layer {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+}
+
+.hero-layer img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* --------------------------------------------------------------------------
+   LAYER 1 — HOSPITAL (Stationary Background)
+   Original hospital campus, entrance and orange cross
+   -------------------------------------------------------------------------- */
+.hero-layer-hospital {
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+}
+
+.hero-img-hospital {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: contrast(1.02) saturate(1.03);
+}
+
+/* --------------------------------------------------------------------------
+   LAYER 2 — DRIVEWAY (Ground Plane)
+   Curved tiled driveway grounded at base of entrance
+   -------------------------------------------------------------------------- */
+.hero-layer-driveway {
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  z-index: 20;
+}
+
+.hero-img-driveway {
+  width: 100%;
+  height: auto;
+}
+
+/* --------------------------------------------------------------------------
+   LAYER 3 — WASTE BINS (Collection Bay)
+   Colour-coded bins (Yellow, Red, White, Blue) placed near hospital collection wing
+   -------------------------------------------------------------------------- */
+.hero-layer-bins {
+  right: 9.5%;
+  bottom: 8.2%;
+  width: 28.5%;
+  z-index: 30;
+}
+
+.hero-img-bins {
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 6px 10px rgba(20, 31, 43, 0.22));
+}
+
+/* --------------------------------------------------------------------------
+   LAYER 4 — VEHICLE SHADOW (Contact Shadow)
+   Transparent ground shadow anchored under collection van
+   -------------------------------------------------------------------------- */
+.hero-layer-shadow {
+  left: 4.8%;
+  bottom: 4.2%;
+  width: 63%;
+  z-index: 40;
+  opacity: 0.88;
+}
+
+.hero-img-shadow {
+  width: 100%;
+  height: auto;
+  mix-blend-mode: multiply;
+}
+
+/* --------------------------------------------------------------------------
+   LAYER 5 — COLLECTION VAN (Foreground Hero Vehicle)
+   Left-facing van parked with cargo doors near bins and wheels on pavement
+   -------------------------------------------------------------------------- */
+.hero-layer-van {
+  left: 7.2%;
+  bottom: 5.4%;
+  width: 58%;
+  z-index: 50;
+}
+
+.hero-img-van {
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 10px 18px rgba(20, 31, 43, 0.16));
+}
+
+/* --------------------------------------------------------------------------
+   RESPONSIVENESS (Desktop, Tablet, Mobile)
+   -------------------------------------------------------------------------- */
+
+/* Large Desktop (> 1200px) */
+@media (min-width: 1200px) {
+  .hero-scene-wrapper {
+    max-width: 640px;
+  }
+}
+
+/* Medium Desktop & Tablet Landscape (992px - 1199px) */
+@media (max-width: 1199.98px) {
+  .hero-scene-wrapper {
+    max-width: 540px;
+  }
+}
+
+/* Tablet Portrait & Small Screens (768px - 991.98px) */
+@media (max-width: 991.98px) {
+  .hero-scene-wrapper {
+    max-width: 520px;
+    margin: 2rem auto 0 auto;
+  }
+}
+
+/* Mobile Screens (< 768px) */
+@media (max-width: 767.98px) {
+  .hero-scene-wrapper {
+    max-width: 100%;
+    padding: 0.35rem;
+    margin: 1.5rem auto 0 auto;
+    border-radius: 16px;
+  }
+
+  .hero-scene-stage {
+    border-radius: 12px;
+  }
+}
+
+/* Extra Small Phones (< 480px) */
+@media (max-width: 479.98px) {
+  .hero-scene-wrapper {
+    padding: 0.25rem;
+    border-radius: 14px;
+  }
+
+  .hero-scene-stage {
+    border-radius: 10px;
+  }
+}
+

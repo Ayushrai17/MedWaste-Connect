@@ -1,0 +1,285 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}Collector Logistics Dashboard — MedWaste Connect{% endblock %}
+
+{% block dashboard_content %}
+<div class="container-fluid py-3 px-md-4">
+
+  <!-- Header -->
+  <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
+    <div>
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <span class="badge text-uppercase px-2 py-1" style="background-color: #FFF3EB; color: #F36B21; font-size: 0.72rem; font-weight: 700;">
+          <i class="bi bi-truck me-1"></i> Logistics Driver
+        </span>
+        <span class="text-muted small">&bull; Today: {{ today_date|date:"l, d M Y" }}</span>
+      </div>
+      <h1 class="h3 fw-bold mb-1" style="color: #071F1D;">Collector Operations Portal</h1>
+      <p class="text-muted small mb-0">
+        Review assigned hospital pickups, verify biomedical waste bag manifests, and record safe custody handovers.
+      </p>
+    </div>
+
+    <!-- Driver Badge -->
+    <div class="d-flex align-items-center gap-2">
+      <div class="p-2 px-3 rounded-pill bg-white border shadow-sm d-flex align-items-center gap-2 small">
+        <i class="bi bi-person-circle fs-5" style="color: #005B50;"></i>
+        <div>
+          <div class="fw-bold text-dark lh-1">{{ user.get_full_name|default:user.username }}</div>
+          <div class="text-muted" style="font-size: 0.7rem;">{{ user.organization_name|default:"Transport Fleet" }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Messages Feedback -->
+  {% if messages %}
+    <div class="mb-4">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show rounded-3 shadow-sm" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <!-- KPI Metrics Grid -->
+  <div class="row g-3 mb-4">
+    <!-- 1. Pending Acceptance -->
+    <div class="col-sm-6 col-lg-3">
+      <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 {% if stats_pending_acceptance > 0 %}border-start border-4 border-warning{% endif %}">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="text-muted small text-uppercase fw-semibold" style="font-size: 0.7rem;">Pending Acceptance</span>
+          <div class="rounded-3 p-2 d-flex align-items-center justify-content-center" style="background-color: #FEF3C7; color: #D97706; width: 38px; height: 38px;">
+            <i class="bi bi-bell fs-5"></i>
+          </div>
+        </div>
+        <div class="h3 fw-bold mb-0 text-warning">{{ stats_pending_acceptance }}</div>
+        <div class="text-muted small mt-1" style="font-size: 0.72rem;">Requires your confirmation</div>
+      </div>
+    </div>
+
+    <!-- 2. Active In Progress -->
+    <div class="col-sm-6 col-lg-3">
+      <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="text-muted small text-uppercase fw-semibold" style="font-size: 0.7rem;">Active Routes</span>
+          <div class="rounded-3 p-2 d-flex align-items-center justify-content-center" style="background-color: #EEF1EF; color: #005B50; width: 38px; height: 38px;">
+            <i class="bi bi-play-circle fs-5"></i>
+          </div>
+        </div>
+        <div class="h3 fw-bold mb-0" style="color: #005B50;">{{ stats_active_pickups }}</div>
+        <div class="text-muted small mt-1" style="font-size: 0.72rem;">Accepted or en route to dock</div>
+      </div>
+    </div>
+
+    <!-- 3. Today's Scheduled Pickups -->
+    <div class="col-sm-6 col-lg-3">
+      <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="text-muted small text-uppercase fw-semibold" style="font-size: 0.7rem;">Today's Pickups</span>
+          <div class="rounded-3 p-2 d-flex align-items-center justify-content-center" style="background-color: #DBEAFE; color: #1E40AF; width: 38px; height: 38px;">
+            <i class="bi bi-calendar-check fs-5"></i>
+          </div>
+        </div>
+        <div class="h3 fw-bold mb-0 text-primary">{{ stats_today_pickups }}</div>
+        <div class="text-muted small mt-1" style="font-size: 0.72rem;">Scheduled for {{ today_date|date:"d M" }}</div>
+      </div>
+    </div>
+
+    <!-- 4. Completed Collections -->
+    <div class="col-sm-6 col-lg-3">
+      <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="text-muted small text-uppercase fw-semibold" style="font-size: 0.7rem;">Completed Handled</span>
+          <div class="rounded-3 p-2 d-flex align-items-center justify-content-center" style="background-color: #ECFDF5; color: #059669; width: 38px; height: 38px;">
+            <i class="bi bi-check2-circle fs-5"></i>
+          </div>
+        </div>
+        <div class="h3 fw-bold mb-0 text-success">{{ stats_completed_pickups }}</div>
+        <div class="text-muted small mt-1" style="font-size: 0.72rem;">Delivered or collected</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab Filter Navigation -->
+  <div class="card border-0 shadow-sm rounded-4 p-3 mb-4 bg-white">
+    <ul class="nav nav-pills gap-1">
+      <li class="nav-item">
+        <a class="nav-link rounded-pill px-3 py-1 small fw-semibold {% if current_tab == 'active' %}active text-white{% else %}text-muted{% endif %}"
+           {% if current_tab == 'active' %}style="background-color: #005B50;"{% endif %}
+           href="?tab=active">
+          Active Assignments
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link rounded-pill px-3 py-1 small fw-semibold {% if current_tab == 'pending' %}active text-white{% else %}text-muted{% endif %}"
+           {% if current_tab == 'pending' %}style="background-color: #005B50;"{% endif %}
+           href="?tab=pending">
+          Pending Acceptance ({{ stats_pending_acceptance }})
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link rounded-pill px-3 py-1 small fw-semibold {% if current_tab == 'today' %}active text-white{% else %}text-muted{% endif %}"
+           {% if current_tab == 'today' %}style="background-color: #005B50;"{% endif %}
+           href="?tab=today">
+          Today's Schedule ({{ stats_today_pickups }})
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link rounded-pill px-3 py-1 small fw-semibold {% if current_tab == 'completed' %}active text-white{% else %}text-muted{% endif %}"
+           {% if current_tab == 'completed' %}style="background-color: #005B50;"{% endif %}
+           href="?tab=completed">
+          Completed History
+        </a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Cards List for Collector (Mobile Optimized) -->
+  <div class="row g-3 mb-4">
+    {% for req in page_obj %}
+      <div class="col-lg-6">
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100 d-flex flex-column" style="border-left: 5px solid {% if req.status == 'ASSIGNED' %}#D97706{% elif req.status == 'ACCEPTED' %}#005B50{% elif req.status == 'PICKUP_IN_PROGRESS' %}#F36B21{% elif req.status == 'COLLECTED' or req.status == 'COMPLETED' %}#059669{% else %}#9CA3AF{% endif %};">
+
+          <!-- Card Header -->
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <div>
+              <span class="badge text-uppercase px-2 py-1" style="font-size: 0.72rem;
+                {% if req.status == 'ASSIGNED' %}background-color: #FEF3C7; color: #92400E;
+                {% elif req.status == 'ACCEPTED' %}background-color: #D1FAE5; color: #065F46;
+                {% elif req.status == 'PICKUP_IN_PROGRESS' %}background-color: #FEF08A; color: #854D0E;
+                {% elif req.status == 'COLLECTED' or req.status == 'COMPLETED' %}background-color: #D1FAE5; color: #065F46;
+                {% else %}background-color: #F3F4F6; color: #374151;{% endif %}">
+                {{ req.get_status_display }}
+              </span>
+              <h2 class="h5 fw-bold text-dark mb-0 mt-1">
+                {{ req.hospital.organization_name|default:req.hospital.username }}
+              </h2>
+            </div>
+            <a href="{% url 'collection:collector_request_detail' req.reference_number %}" class="font-monospace fw-bold text-decoration-none small" style="color: #005B50;">
+              {{ req.reference_number }}
+            </a>
+          </div>
+
+          <!-- Pickup Address -->
+          <div class="text-muted small mb-3">
+            <i class="bi bi-geo-alt-fill text-danger me-1"></i> {{ req.pickup_address }}
+          </div>
+
+          <!-- Schedule & Consignment Meta -->
+          <div class="row g-2 p-2 rounded-3 bg-light mb-3" style="font-size: 0.8rem;">
+            <div class="col-6">
+              <span class="text-muted">Confirmed Date:</span>
+              <div class="fw-bold text-dark">
+                {{ req.effective_pickup_date|date:"D, d M Y" }}
+              </div>
+            </div>
+            <div class="col-6">
+              <span class="text-muted">Target Time:</span>
+              <div class="fw-bold text-dark">
+                {{ req.effective_pickup_time|time:"H:i" }}
+              </div>
+            </div>
+            <div class="col-6">
+              <span class="text-muted">Consignment:</span>
+              <div class="fw-bold text-dark">{{ req.total_bags }} bag(s)</div>
+            </div>
+            <div class="col-6">
+              <span class="text-muted">Total Net Weight:</span>
+              <div class="fw-bold" style="color: #F36B21;">{{ req.total_weight }} KG</div>
+            </div>
+          </div>
+
+          <!-- Contact Details -->
+          <div class="small text-muted mb-3">
+            <i class="bi bi-telephone-fill me-1 text-primary"></i> Coordinator: <strong>{{ req.contact_person }}</strong> ({{ req.contact_phone }})
+            {% if req.special_instructions %}
+              <div class="mt-1 text-truncate"><i class="bi bi-info-circle me-1"></i> <em>{{ req.special_instructions }}</em></div>
+            {% endif %}
+          </div>
+
+          <!-- Operational Actions -->
+          <div class="mt-auto pt-3 border-top d-flex flex-wrap gap-2 align-items-center justify-content-between">
+            <a href="{% url 'collection:collector_request_detail' req.reference_number %}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+              <i class="bi bi-card-checklist me-1"></i> View Manifest
+            </a>
+
+            <div class="d-flex gap-2">
+              {% if req.status == 'ASSIGNED' %}
+                <!-- Accept Assignment -->
+                <form method="post" action="{% url 'collection:collector_accept' req.reference_number %}">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm text-white rounded-pill px-3 shadow-sm fw-semibold" style="background-color: #005B50;">
+                    <i class="bi bi-check-circle me-1"></i> Accept
+                  </button>
+                </form>
+
+                <!-- Reject Assignment -->
+                <a href="{% url 'collection:collector_reject' req.reference_number %}" class="btn btn-sm btn-outline-danger rounded-pill px-3">
+                  <i class="bi bi-x-circle me-1"></i> Decline
+                </a>
+
+              {% elif req.status == 'ACCEPTED' %}
+                <!-- Start Journey -->
+                <form method="post" action="{% url 'collection:collector_start' req.reference_number %}">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm text-white rounded-pill px-3 shadow-sm fw-semibold" style="background-color: #F36B21;">
+                    <i class="bi bi-truck me-1"></i> Start Journey
+                  </button>
+                </form>
+
+              {% elif req.status == 'PICKUP_IN_PROGRESS' %}
+                <!-- Open Manifest & Collect -->
+                <a href="{% url 'collection:collector_request_detail' req.reference_number %}" class="btn btn-sm text-white rounded-pill px-3 shadow-sm fw-semibold" style="background-color: #059669;">
+                  <i class="bi bi-qr-code-scan me-1"></i> Verify &amp; Collect
+                </a>
+              {% endif %}
+            </div>
+          </div>
+
+        </div>
+      </div>
+    {% empty %}
+      <div class="col-12 text-center py-5">
+        <div class="card border-0 shadow-sm rounded-4 p-5 bg-white">
+          <div class="rounded-circle d-inline-flex p-3 mb-3 mx-auto" style="background-color: #EEF1EF; color: #005B50; font-size: 2rem;">
+            <i class="bi bi-truck"></i>
+          </div>
+          <h5 class="fw-bold text-dark">No Assignments in this View</h5>
+          <p class="text-muted small mb-0">You currently have no collection requests matching your selected tab filter.</p>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <!-- Pagination -->
+  {% if page_obj.has_other_pages %}
+    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white mb-4 d-flex justify-content-between align-items-center">
+      <div class="text-muted small">
+        Showing <strong>{{ page_obj.start_index }}</strong> to <strong>{{ page_obj.end_index }}</strong> of <strong>{{ page_obj.paginator.count }}</strong> assignments
+      </div>
+      <nav aria-label="Collector pagination">
+        <ul class="pagination pagination-sm mb-0">
+          {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&tab={{ current_tab }}">&laquo;</a></li>
+          {% endif %}
+          {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+              <li class="page-item active"><span class="page-link" style="background-color: #005B50; border-color: #005B50;">{{ num }}</span></li>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+              <li class="page-item"><a class="page-link" href="?page={{ num }}&tab={{ current_tab }}">{{ num }}</a></li>
+            {% endif %}
+          {% endfor %}
+          {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&tab={{ current_tab }}">&raquo;</a></li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+

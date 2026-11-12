@@ -1,0 +1,355 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}Log Biomedical Waste — {{ SITE_NAME }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="container-fluid py-3 px-md-4">
+
+  <!-- Breadcrumb & Header -->
+  <div class="mb-4">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-1" style="font-size: 0.85rem;">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard_redirect' %}" class="text-decoration-none text-muted">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'waste:inventory' %}" class="text-decoration-none text-muted">Waste Inventory</a></li>
+        <li class="breadcrumb-item active fw-semibold" style="color: var(--teal-deep);" aria-current="page">Log Waste Bags</li>
+      </ol>
+    </nav>
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+      <div>
+        <h1 class="h3 fw-bold mb-1" style="color: #071F1D;">Biomedical Waste Registration</h1>
+        <p class="text-muted small mb-0">
+          Segregate and log clinical biohazard waste under Schedule I of BMW Rules. Each physical bag receives an independent permanent ID.
+        </p>
+      </div>
+      <div>
+        <a href="{% url 'waste:inventory' %}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+          <i class="bi bi-arrow-left me-1"></i> View Waste Inventory
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Messages Feedback -->
+  {% if messages %}
+    <div class="mb-4">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show rounded-3 shadow-sm" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <!-- Regulatory Segregation Color Reference Cards -->
+  <div class="mb-4">
+    <div class="d-flex align-items-center justify-content-between mb-2">
+      <span class="text-uppercase fw-bold text-muted" style="font-size: 0.72rem; letter-spacing: 0.05em;">
+        Statutory Biomedical Waste Categories (BMW Rules 2016 / 2018 / 2019)
+      </span>
+      <span class="badge bg-light text-muted border" style="font-size: 0.72rem;">Central Regulatory Standard</span>
+    </div>
+
+    <div class="row g-3">
+      {% for cat in categories %}
+        <div class="col-sm-6 col-lg-3">
+          <div class="card h-100 border-0 shadow-sm rounded-3 p-3 position-relative" style="background-color: #FFFFFF; border-top: 4px solid {{ cat.display_color }} !important;">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <span class="badge text-uppercase px-2 py-1" style="background-color: {{ cat.display_color }}; color: {% if cat.code == 'YELLOW' or cat.code == 'WHITE' %}#071F1D{% else %}#FFFFFF{% endif %}; font-weight: 700; font-size: 0.75rem;">
+                {{ cat.code }}
+              </span>
+              <span class="text-muted small" style="font-size: 0.75rem;">Seq #{{ cat.display_order }}</span>
+            </div>
+            <div class="fw-bold mb-1" style="color: #071F1D; font-size: 0.95rem;">{{ cat.name }}</div>
+            <div class="text-muted small mb-2" style="font-size: 0.8rem; line-height: 1.35;">
+              <strong>Container:</strong> {{ cat.container_type }}
+            </div>
+            <div class="text-secondary small mt-auto pt-2 border-top" style="font-size: 0.75rem; line-height: 1.3;">
+              <i class="bi bi-shield-check text-success me-1"></i> {{ cat.treatment_description|truncatewords:14 }}
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Registration Form Card -->
+  <div class="card border-0 shadow-sm rounded-4 p-4 mb-4" style="background-color: #FFFFFF;">
+    <form method="post" id="wasteRegistrationForm" action="{% url 'waste:register' %}">
+      {% csrf_token %}
+      {{ form.bags_json }}
+
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger rounded-3 mb-4">
+          <div class="fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill me-1"></i> Validation Errors:</div>
+          <ul class="mb-0 ps-3">
+            {% for error in form.non_field_errors %}
+              <li>{{ error }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
+      <!-- Section 1: Facility & Ward Location -->
+      <div class="border-bottom pb-4 mb-4">
+        <h2 class="h5 fw-bold mb-3 d-flex align-items-center gap-2" style="color: #005B50;">
+          <i class="bi bi-geo-alt-fill"></i> Step 1: Hospital Origin &amp; Location
+        </h2>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label for="id_hospital_display" class="form-label fw-semibold small text-muted">Hospital Healthcare Facility</label>
+            <input type="text" id="id_hospital_display" class="form-control bg-light" value="{{ user.organization_name|default:user.username }} ({{ user.username }})" readonly disabled>
+            <div class="form-text text-muted" style="font-size: 0.75rem;">
+              <i class="bi bi-lock-fill text-muted"></i> Authenticated hospital tenant. Ownership injected server-side.
+            </div>
+          </div>
+
+          <div class="col-md-3">
+            <label for="id_ward" class="form-label fw-semibold small text-dark">Ward / Unit Name <span class="text-danger">*</span></label>
+            <input type="text" name="ward" id="id_ward" class="form-control {% if form.ward.errors %}is-invalid{% endif %}" placeholder="e.g. ICU-3, Ward 4B, Trauma Unit" value="{{ form.ward.value|default:'' }}" required>
+            {% if form.ward.errors %}
+              <div class="invalid-feedback">{{ form.ward.errors|striptags }}</div>
+            {% else %}
+              <div class="form-text text-muted" style="font-size: 0.75rem;">Specific room, wing, or clinical unit.</div>
+            {% endif %}
+          </div>
+
+          <div class="col-md-3">
+            <label for="id_department" class="form-label fw-semibold small text-dark">Clinical Department <span class="text-danger">*</span></label>
+            <input type="text" name="department" id="id_department" class="form-control {% if form.department.errors %}is-invalid{% endif %}" placeholder="e.g. Surgery, Pathology, Oncology" value="{{ form.department.value|default:'' }}" required>
+            {% if form.department.errors %}
+              <div class="invalid-feedback">{{ form.department.errors|striptags }}</div>
+            {% else %}
+              <div class="form-text text-muted" style="font-size: 0.75rem;">Department generating the waste.</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2: Physical Waste Bags -->
+      <div class="mb-4">
+        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3">
+          <div>
+            <h2 class="h5 fw-bold mb-1 d-flex align-items-center gap-2" style="color: #005B50;">
+              <i class="bi bi-bag-check-fill"></i> Step 2: Individual Waste Bags &amp; Weights
+            </h2>
+            <div class="text-muted small">
+              Specify category and net scale weight for each physical bag. Permitted weight: <strong>{{ min_weight }} kg</strong> to <strong>{{ max_weight }} kg</strong> per bag.
+            </div>
+          </div>
+
+          <button type="button" class="btn btn-sm text-white rounded-pill px-3 shadow-sm" id="btnAddBag" style="background-color: #005B50;">
+            <i class="bi bi-plus-circle me-1"></i> Add Another Bag
+          </button>
+        </div>
+
+        <!-- Bags Table / Dynamic Container -->
+        <div class="table-responsive rounded-3 border mb-3">
+          <table class="table table-hover align-middle mb-0" id="bagsTable">
+            <thead style="background-color: #EEF1EF; color: #071F1D; font-size: 0.82rem;">
+              <tr>
+                <th style="width: 70px;" class="text-center">#</th>
+                <th style="width: 35%;">Category &amp; Packaging <span class="text-danger">*</span></th>
+                <th style="width: 35%;">Net Scale Weight (KG) <span class="text-danger">*</span></th>
+                <th style="width: 15%;" class="text-center">Action</th>
+              </tr>
+            </thead>
+            <tbody id="bagsTableBody">
+              <!-- Default Initial Bag Row -->
+              <tr class="bag-row" data-row-idx="0">
+                <td class="text-center fw-bold text-muted row-counter">1</td>
+                <td>
+                  <select name="bag_category_0" class="form-select bag-category-select" required>
+                    <option value="" disabled selected>-- Select Color Category --</option>
+                    {% for cat in categories %}
+                      <option value="{{ cat.id }}" data-code="{{ cat.code }}" data-color="{{ cat.display_color }}">
+                        {{ cat.name }} ({{ cat.code }}) — {{ cat.container_type|truncatewords:5 }}
+                      </option>
+                    {% endfor %}
+                  </select>
+                </td>
+                <td>
+                  <div class="input-group">
+                    <input type="number" name="bag_weight_0" class="form-control bag-weight-input" step="0.01" min="{{ min_weight }}" max="{{ max_weight }}" placeholder="e.g. 2.45" required>
+                    <span class="input-group-text bg-light fw-bold text-muted">KG</span>
+                  </div>
+                  <div class="form-text text-muted" style="font-size: 0.72rem;">Min: {{ min_weight }} kg | Max: {{ max_weight }} kg</div>
+                </td>
+                <td class="text-center">
+                  <button type="button" class="btn btn-sm btn-outline-danger btn-remove-row rounded-circle p-1" title="Remove Bag" disabled style="width: 32px; height: 32px;">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Batch Aggregate Live Summary Box -->
+        <div class="p-3 rounded-3 d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3" style="background-color: #EEF1EF; border: 1px dashed #007A68;">
+          <div class="d-flex align-items-center gap-3">
+            <div class="rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 40px; height: 40px; background-color: #005B50;">
+              <i class="bi bi-calculator fs-5"></i>
+            </div>
+            <div>
+              <div class="small fw-semibold text-muted text-uppercase" style="font-size: 0.72rem;">Batch Total Summary</div>
+              <div class="fw-bold" style="color: #071F1D;">
+                <span id="summaryBagCount">1</span> bag(s) configured
+              </div>
+            </div>
+          </div>
+
+          <div class="text-sm-end">
+            <span class="text-muted small me-2">Aggregate Net Weight:</span>
+            <span class="h4 fw-bold mb-0" style="color: #F36B21;" id="summaryTotalWeight">0.00</span>
+            <span class="fw-bold text-dark ms-1">KG</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 3: Submission & Confirmation -->
+      <div class="d-flex flex-column flex-sm-row justify-content-end align-items-center gap-3 pt-3 border-top">
+        <a href="{% url 'waste:inventory' %}" class="btn btn-outline-secondary rounded-pill px-4">
+          Cancel
+        </a>
+        <button type="submit" class="btn btn-lg text-white rounded-pill px-5 shadow" id="btnSubmitBatch" style="background-color: #005B50;">
+          <i class="bi bi-check2-circle me-2"></i> Register Waste Batch
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Dynamic Row Client-Side Script -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const tableBody = document.getElementById("bagsTableBody");
+  const btnAddBag = document.getElementById("btnAddBag");
+  const summaryBagCount = document.getElementById("summaryBagCount");
+  const summaryTotalWeight = document.getElementById("summaryTotalWeight");
+  const bagsJsonInput = document.getElementById("id_bags_json");
+  const form = document.getElementById("wasteRegistrationForm");
+
+  const minWeight = parseFloat("{{ min_weight }}");
+  const maxWeight = parseFloat("{{ max_weight }}");
+
+  // Options HTML template extracted from the initial row
+  const firstSelect = tableBody.querySelector(".bag-category-select");
+  const optionsHtml = firstSelect ? firstSelect.innerHTML : "";
+
+  function updateRowIndicesAndCounters() {
+    const rows = tableBody.querySelectorAll(".bag-row");
+    rows.forEach((row, index) => {
+      row.dataset.rowIdx = index;
+      const counter = row.querySelector(".row-counter");
+      if (counter) counter.textContent = (index + 1);
+
+      const select = row.querySelector(".bag-category-select");
+      if (select) select.name = `bag_category_${index}`;
+
+      const weightInput = row.querySelector(".bag-weight-input");
+      if (weightInput) weightInput.name = `bag_weight_${index}`;
+
+      const removeBtn = row.querySelector(".btn-remove-row");
+      if (removeBtn) {
+        removeBtn.disabled = (rows.length === 1);
+      }
+    });
+
+    summaryBagCount.textContent = rows.length;
+    recalculateTotals();
+  }
+
+  function recalculateTotals() {
+    const weightInputs = tableBody.querySelectorAll(".bag-weight-input");
+    let sum = 0.0;
+    weightInputs.forEach((input) => {
+      const val = parseFloat(input.value);
+      if (!isNaN(val) && val > 0) {
+        sum += val;
+      }
+    });
+    summaryTotalWeight.textContent = sum.toFixed(2);
+  }
+
+  function serializeToJson() {
+    const rows = tableBody.querySelectorAll(".bag-row");
+    const payload = [];
+    rows.forEach((row) => {
+      const select = row.querySelector(".bag-category-select");
+      const weightInput = row.querySelector(".bag-weight-input");
+      if (select && weightInput) {
+        payload.push({
+          category: select.value,
+          weight: weightInput.value ? weightInput.value.trim() : ""
+        });
+      }
+    });
+    if (bagsJsonInput) {
+      bagsJsonInput.value = JSON.stringify(payload);
+    }
+  }
+
+  btnAddBag.addEventListener("click", function () {
+    const rows = tableBody.querySelectorAll(".bag-row");
+    if (rows.length >= 20) {
+      alert("A maximum of 20 bags can be registered in a single batch.");
+      return;
+    }
+
+    const newIndex = rows.length;
+    const tr = document.createElement("tr");
+    tr.className = "bag-row";
+    tr.dataset.rowIdx = newIndex;
+
+    tr.innerHTML = `
+      <td class="text-center fw-bold text-muted row-counter">${newIndex + 1}</td>
+      <td>
+        <select name="bag_category_${newIndex}" class="form-select bag-category-select" required>
+          ${optionsHtml}
+        </select>
+      </td>
+      <td>
+        <div class="input-group">
+          <input type="number" name="bag_weight_${newIndex}" class="form-control bag-weight-input" step="0.01" min="${minWeight}" max="${maxWeight}" placeholder="e.g. 2.45" required>
+          <span class="input-group-text bg-light fw-bold text-muted">KG</span>
+        </div>
+        <div class="form-text text-muted" style="font-size: 0.72rem;">Min: ${minWeight} kg | Max: ${maxWeight} kg</div>
+      </td>
+      <td class="text-center">
+        <button type="button" class="btn btn-sm btn-outline-danger btn-remove-row rounded-circle p-1" title="Remove Bag" style="width: 32px; height: 32px;">
+          <i class="bi bi-trash"></i>
+        </button>
+      </td>
+    `;
+
+    tableBody.appendChild(tr);
+    updateRowIndicesAndCounters();
+  });
+
+  tableBody.addEventListener("click", function (e) {
+    const removeBtn = e.target.closest(".btn-remove-row");
+    if (!removeBtn) return;
+    const row = removeBtn.closest(".bag-row");
+    if (row && tableBody.querySelectorAll(".bag-row").length > 1) {
+      row.remove();
+      updateRowIndicesAndCounters();
+    }
+  });
+
+  tableBody.addEventListener("input", function (e) {
+    if (e.target.classList.contains("bag-weight-input")) {
+      recalculateTotals();
+    }
+  });
+
+  form.addEventListener("submit", function () {
+    serializeToJson();
+  });
+
+  // Initial calculation
+  updateRowIndicesAndCounters();
+});
+</script>
+{% endblock %}
+

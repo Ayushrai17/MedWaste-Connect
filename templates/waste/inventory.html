@@ -1,0 +1,710 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}Hospital Waste Inventory Dashboard — {{ SITE_NAME }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* Dashboard Specific Styling */
+  .kpi-card {
+    background-color: #FFFFFF;
+    border: 0;
+    border-radius: 14px;
+    padding: 20px;
+    box-shadow: 0 4px 16px rgba(7, 31, 29, 0.05);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    overflow: hidden;
+  }
+  .kpi-card .h3,
+  .kpi-card .kpi-metric-value {
+    font-size: clamp(1.2rem, 1.45vw, 1.55rem);
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+  .kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(7, 31, 29, 0.08);
+  }
+  .kpi-icon-wrapper {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+  }
+  .category-pill {
+    font-weight: 700;
+    font-size: 0.72rem;
+    padding: 4px 10px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid rgba(0,0,0,0.12);
+  }
+  .status-badge {
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 9999px;
+  }
+  .filter-card {
+    background-color: #FFFFFF;
+    border: 0;
+    border-radius: 14px;
+    box-shadow: 0 4px 16px rgba(7, 31, 29, 0.05);
+  }
+  .table-custom th {
+    background-color: #EEF1EF;
+    color: #071F1D;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 14px 16px;
+    border-bottom: 2px solid #E2E6E3;
+  }
+  .table-custom td {
+    padding: 14px 16px;
+    vertical-align: middle;
+    border-bottom: 1px solid #F0F2F1;
+  }
+  .table-custom tbody tr:hover {
+    background-color: #FBFBFA;
+  }
+  .chart-container-box {
+    position: relative;
+    height: 220px;
+    max-width: 100%;
+  }
+</style>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="container-fluid py-3 px-md-4">
+
+  <!-- A. Dashboard Header -->
+  <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
+    <div>
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <span class="badge text-uppercase px-2 py-1" style="background-color: #EEF1EF; color: #005B50; font-size: 0.72rem; font-weight: 700;">
+          <i class="bi bi-hospital me-1"></i> {{ user.organization_name|default:user.username }}
+        </span>
+        <span class="text-muted small">&bull; {{ last_refreshed|date:"l, d M Y, H:i" }}</span>
+      </div>
+      <h1 class="h3 fw-bold mb-1" style="color: #071F1D;">Hospital Waste Inventory Dashboard</h1>
+      <p class="text-muted small mb-0">
+        Real-time biomedical waste segregation, verified weights, QR tracking status, and statutory disposal manifests.
+      </p>
+    </div>
+
+    <!-- Header Actions -->
+    <div class="d-flex flex-wrap gap-2">
+      <a href="{% url 'waste:inventory_export' %}{% if preserved_query_string %}?{{ preserved_query_string }}{% endif %}" class="btn btn-outline-secondary rounded-pill px-3 shadow-sm btn-sm fw-semibold" title="Export filtered inventory records as CSV">
+        <i class="bi bi-file-earmark-arrow-down me-1"></i> Export Inventory (CSV)
+      </a>
+      <a href="{% url 'waste:register' %}" class="btn text-white rounded-pill px-4 shadow-sm btn-sm fw-semibold" style="background-color: #005B50;">
+        <i class="bi bi-plus-circle me-1"></i> Register New Waste
+      </a>
+    </div>
+  </div>
+
+  <!-- Messages Feedback -->
+  {% if messages %}
+    <div class="mb-4">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show rounded-3 shadow-sm" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <!-- B. KPI Summary Cards Grid (6 Metric Cards) -->
+  <div class="row g-3 mb-4">
+    <!-- 1. Total Registered Bags -->
+    <div class="col-sm-6 col-lg-2">
+      <div class="kpi-card h-100">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="text-muted small text-uppercase fw-semibold" style="font-size: 0.68rem;">Total Bags</span>
+          <div class="kpi-icon-wrapper" style="background-color: #EEF1EF; color: #005B50;">
+            <i class="bi bi-bag-check"></i>
+          </div>
+        </div>
+        <div class="h3 fw-bold mb-0" style="color: #071F1D;">{{ stats_total_bags }}</div>
+        <div class="text-muted small mt-1" style="font-size: 0.72rem;">Active containers</div>
+      </div>
+    </div>
+
+    <!-- 2. Total Weight Logged -->
+    <div class="col-sm-6 col-lg-2">
+      <div class="kpi-card h-100">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="text-muted small text-uppercase fw-semibold" style="font-size: 0.68rem;">Net Weight</span>
+          <div class="kpi-icon-wrapper" style="background-color: #FFF3EB; color: #F36B21;">
+            <i class="bi bi-speedometer2"></i>
+          </div>
+        </div>
+        <div class="h3 fw-bold mb-0 kpi-metric-value" style="color: #F36B21;">
+          {{ stats_total_weight|floatformat:2 }} <span class="fs-6 text-muted">KG</span>
+        </div>
+        <div class="text-muted small mt-1" style="font-size: 0.72rem;">Verified scale total</div>
+      </div>
+    </div>
+
+    <!-- 3. Total Batches -->
+    <div class="col-sm-6 col-lg-2">
+      <div class="kpi-card h-100">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="text-muted small text-uppercase fw-semibold" style="font-size: 0.68rem;">Batches Logged</span>
+          <div class="kpi-icon-wrapper" style="background-color: #EEF1EF; color: #007A68;">
+            <i class="bi bi-boxes"></i>
+          </div>
+        </div>
+        <div class="h3 fw-bold mb-0" style="color: #071F1D;">{{ stats_total_batches }}</div>
+        <div class="text-muted small mt-1" style="font-size: 0.72rem;">Consignment batches</div>
+      </div>
+    </div>
+
+    <!-- 4. QR-Ready Bags -->
+    <div class="col-sm-6 col-lg-2">
+      <div class="kpi-card h-100">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="text-muted small text-uppercase fw-semibold" style="font-size: 0.68rem;">QR Ready</span>
+          <div class="kpi-icon-wrapper" style="background-color: #ECFDF5; color: #059669;">
+            <i class="bi bi-qr-code"></i>
+          </div>
+        </div>
+        <div class="h3 fw-bold mb-0 text-success">{{ stats_qr_ready }}</div>
+        <div class="text-success small mt-1 fw-semibold" style="font-size: 0.72rem;">
+          <i class="bi bi-check-circle me-1"></i> {{ qr_ready_pct }}% verified
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. QR-Pending Bags -->
+    <div class="col-sm-6 col-lg-2">
+      <div class="kpi-card h-100">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="text-muted small text-uppercase fw-semibold" style="font-size: 0.68rem;">QR Pending</span>
+          <div class="kpi-icon-wrapper" style="background-color: #FEF3C7; color: #D97706;">
+            <i class="bi bi-hourglass-split"></i>
+          </div>
+        </div>
+        <div class="h3 fw-bold mb-0 text-warning">{{ stats_qr_pending }}</div>
+        <div class="text-muted small mt-1" style="font-size: 0.72rem;">
+          {{ qr_pending_pct }}% in queue
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. QR-Failed Bags -->
+    <div class="col-sm-6 col-lg-2">
+      <div class="kpi-card h-100 position-relative {% if stats_qr_failed > 0 %}border border-danger-subtle{% endif %}">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="text-muted small text-uppercase fw-semibold" style="font-size: 0.68rem;">QR Failed</span>
+          <div class="kpi-icon-wrapper" style="background-color: #FEE2E2; color: #DC2626;">
+            <i class="bi bi-exclamation-triangle"></i>
+          </div>
+        </div>
+        <div class="h3 fw-bold mb-0 {% if stats_qr_failed > 0 %}text-danger{% else %}text-muted{% endif %}">
+          {{ stats_qr_failed }}
+        </div>
+        <div class="small mt-1" style="font-size: 0.72rem;">
+          {% if stats_qr_failed > 0 %}
+            <a href="?qr_status=FAILED" class="text-danger fw-bold text-decoration-none">
+              <i class="bi bi-arrow-right-circle me-1"></i> Inspect Failed
+            </a>
+          {% else %}
+            <span class="text-muted">Zero errors</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- C & D. Analytics Row: Category Distribution & QR Health -->
+  <div class="row g-3 mb-4">
+    <!-- Category Weight Distribution Card -->
+    <div class="col-lg-8">
+      <div class="kpi-card h-100 p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <h2 class="h5 fw-bold mb-0" style="color: #071F1D;">Waste Category Distribution</h2>
+            <div class="text-muted small">Biomedical waste breakdown by Schedule I statutory classification.</div>
+          </div>
+          <span class="badge bg-light text-muted border small">Hospital Scope</span>
+        </div>
+
+        <div class="row g-3 align-items-center">
+          <!-- Chart Column -->
+          <div class="col-md-5 text-center">
+            {% if stats_total_bags > 0 %}
+              <div class="chart-container-box mx-auto">
+                <canvas id="categoryDoughnutChart"></canvas>
+              </div>
+            {% else %}
+              <div class="py-5 text-muted small">
+                <i class="bi bi-pie-chart fs-1 d-block mb-2 text-secondary"></i>
+                No waste bags registered yet to chart.
+              </div>
+            {% endif %}
+          </div>
+
+          <!-- Category Progress Bars Column -->
+          <div class="col-md-7">
+            <div class="d-flex flex-column gap-2">
+              {% for item in category_distribution %}
+                <div class="p-2 rounded-2" style="background-color: #F7F7F5; border-left: 4px solid {{ item.display_color }};">
+                  <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="fw-bold small text-dark">
+                      {{ item.name }} ({{ item.code }})
+                    </span>
+                    <span class="small fw-bold" style="color: #071F1D;">
+                      {{ item.weight|floatformat:2 }} KG <span class="text-muted fw-normal">({{ item.weight_pct }}%)</span>
+                    </span>
+                  </div>
+                  <div class="progress" style="height: 6px; background-color: #E5E7EB;">
+                    <div class="progress-bar" role="progressbar" style="width: {{ item.weight_pct }}%; background-color: {{ item.display_color }};" aria-valuenow="{{ item.weight_pct }}" aria-valuemin="0" aria-valuemax="100"></div>
+                  </div>
+                  <div class="d-flex justify-content-between align-items-center mt-1 text-muted" style="font-size: 0.72rem;">
+                    <span>{{ item.count }} bag(s) logged</span>
+                    <span>{{ item.container_type|truncatewords:4 }}</span>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QR Operations Health Card -->
+    <div class="col-lg-4">
+      <div class="kpi-card h-100 p-4 d-flex flex-column">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h2 class="h5 fw-bold mb-0" style="color: #071F1D;">QR Code Health</h2>
+          <span class="badge {% if stats_qr_failed == 0 %}bg-success-subtle text-success{% else %}bg-danger-subtle text-danger{% endif %} small">
+            {% if stats_qr_failed == 0 %}Operational{% else %}Attention Required{% endif %}
+          </span>
+        </div>
+
+        <p class="text-muted small mb-3">
+          Verification lifecycle of encrypted QR tokens generated for hospital containers.
+        </p>
+
+        <div class="d-flex flex-column gap-2 mb-3">
+          <!-- Ready Bar -->
+          <div class="p-2 rounded-2 bg-light">
+            <div class="d-flex justify-content-between small fw-semibold mb-1">
+              <span class="text-success"><i class="bi bi-check-circle-fill me-1"></i> READY</span>
+              <span class="text-dark">{{ stats_qr_ready }} ({{ qr_ready_pct }}%)</span>
+            </div>
+            <div class="progress" style="height: 6px;">
+              <div class="progress-bar bg-success" style="width: {{ qr_ready_pct }}%;"></div>
+            </div>
+          </div>
+
+          <!-- Pending Bar -->
+          <div class="p-2 rounded-2 bg-light">
+            <div class="d-flex justify-content-between small fw-semibold mb-1">
+              <span class="text-warning"><i class="bi bi-hourglass-top me-1"></i> PENDING</span>
+              <span class="text-dark">{{ stats_qr_pending }} ({{ qr_pending_pct }}%)</span>
+            </div>
+            <div class="progress" style="height: 6px;">
+              <div class="progress-bar bg-warning" style="width: {{ qr_pending_pct }}%;"></div>
+            </div>
+          </div>
+
+          <!-- Failed Bar -->
+          <div class="p-2 rounded-2 bg-light">
+            <div class="d-flex justify-content-between small fw-semibold mb-1">
+              <span class="text-danger"><i class="bi bi-x-circle-fill me-1"></i> FAILED</span>
+              <span class="text-dark">{{ stats_qr_failed }} ({{ qr_failed_pct }}%)</span>
+            </div>
+            <div class="progress" style="height: 6px;">
+              <div class="progress-bar bg-danger" style="width: {{ qr_failed_pct }}%;"></div>
+            </div>
+          </div>
+        </div>
+
+        {% if stats_qr_failed > 0 %}
+          <div class="alert alert-danger p-2 small mb-0 rounded-3 mt-auto">
+            <i class="bi bi-exclamation-octagon me-1"></i> <strong>{{ stats_qr_failed }} bag(s)</strong> failed QR rendering.
+            <a href="?qr_status=FAILED" class="alert-link ms-1">Filter &amp; Retry</a>
+          </div>
+        {% else %}
+          <div class="p-2 rounded-3 bg-light text-muted small text-center mt-auto" style="font-size: 0.75rem;">
+            <i class="bi bi-shield-check text-success me-1"></i> All generated QR tokens are sound and verifiable.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- E. Advanced Filter & Search Bar -->
+  <div class="filter-card p-3 p-md-4 mb-4">
+    <form method="get" action="{% url 'waste:inventory' %}" class="row g-2 align-items-center">
+      <!-- Search Input -->
+      <div class="col-md-3">
+        <label for="id_search_q" class="form-label text-muted small fw-semibold mb-1">Search Identifier</label>
+        <div class="input-group input-group-sm">
+          <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-search"></i></span>
+          <input type="text" id="id_search_q" name="q" class="form-control border-start-0" placeholder="Bag ID, Batch, Ward, Dept..." value="{{ q }}">
+        </div>
+      </div>
+
+      <!-- Category Filter -->
+      <div class="col-sm-6 col-md-2">
+        <label for="id_filter_category" class="form-label text-muted small fw-semibold mb-1">Waste Category</label>
+        <select id="id_filter_category" name="category" class="form-select form-select-sm">
+          <option value="">All Categories</option>
+          {% for cat in categories %}
+            <option value="{{ cat.code }}" {% if selected_category == cat.code %}selected{% endif %}>
+              {{ cat.name }} ({{ cat.code }})
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- QR Status Filter -->
+      <div class="col-sm-6 col-md-2">
+        <label for="id_filter_qr" class="form-label text-muted small fw-semibold mb-1">QR Status</label>
+        <select id="id_filter_qr" name="qr_status" class="form-select form-select-sm">
+          <option value="">All QR Statuses</option>
+          {% for val, label in qr_status_choices %}
+            <option value="{{ val }}" {% if selected_qr_status == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Date Range (From - To) -->
+      <div class="col-sm-6 col-md-2">
+        <label for="id_date_from" class="form-label text-muted small fw-semibold mb-1">From Date</label>
+        <input type="date" id="id_date_from" name="date_from" class="form-control form-control-sm" value="{{ date_from }}">
+      </div>
+
+      <div class="col-sm-6 col-md-2">
+        <label for="id_date_to" class="form-label text-muted small fw-semibold mb-1">To Date</label>
+        <input type="date" id="id_date_to" name="date_to" class="form-control form-control-sm" value="{{ date_to }}">
+      </div>
+
+      <!-- Sort & Action Buttons -->
+      <div class="col-md-1 d-flex flex-column justify-content-end">
+        <label class="form-label text-muted small fw-semibold mb-1 d-none d-md-block">&nbsp;</label>
+        <button type="submit" class="btn btn-sm text-white w-100 rounded-pill" style="background-color: #005B50;">
+          Filter
+        </button>
+      </div>
+
+      <!-- Secondary Controls Row (Sort & Reset) -->
+      <div class="col-12 d-flex flex-wrap justify-content-between align-items-center pt-2 border-top mt-2">
+        <div class="d-flex align-items-center gap-2">
+          <label for="id_sort_select" class="small text-muted fw-semibold">Sort Order:</label>
+          <select id="id_sort_select" name="sort" class="form-select form-select-sm" style="width: 170px;" onchange="this.form.submit()">
+            <option value="date_desc" {% if sort == 'date_desc' %}selected{% endif %}>Newest First</option>
+            <option value="date_asc" {% if sort == 'date_asc' %}selected{% endif %}>Oldest First</option>
+            <option value="weight_desc" {% if sort == 'weight_desc' %}selected{% endif %}>Heaviest First</option>
+            <option value="weight_asc" {% if sort == 'weight_asc' %}selected{% endif %}>Lightest First</option>
+            <option value="bag_id_asc" {% if sort == 'bag_id_asc' %}selected{% endif %}>Bag ID (A-Z)</option>
+            <option value="bag_id_desc" {% if sort == 'bag_id_desc' %}selected{% endif %}>Bag ID (Z-A)</option>
+          </select>
+        </div>
+
+        {% if q or selected_category or selected_qr_status or selected_status or date_from or date_to or sort != 'date_desc' %}
+          <a href="{% url 'waste:inventory' %}" class="btn btn-sm btn-outline-danger rounded-pill px-3">
+            <i class="bi bi-x-circle me-1"></i> Reset Filters
+          </a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+
+  <!-- F. Advanced Inventory Data Table -->
+  <div class="card border-0 shadow-sm rounded-4 p-0 mb-4 overflow-hidden" style="background-color: #FFFFFF;">
+    <div class="table-responsive">
+      <table class="table table-custom align-middle mb-0">
+        <thead>
+          <tr>
+            <th class="ps-4">Bag Tracking ID</th>
+            <th>Waste Category</th>
+            <th>Scale Weight</th>
+            <th>Ward &amp; Department</th>
+            <th>Batch Number</th>
+            <th>Logged Date</th>
+            <th>QR Status</th>
+            <th>Custody</th>
+            <th class="text-end pe-4">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for bag in page_obj %}
+            <tr>
+              <!-- Bag ID -->
+              <td class="ps-4">
+                <a href="{% url 'waste:bag_detail' bag.bag_id %}" class="font-monospace fw-bold text-decoration-none" style="color: #005B50;">
+                  {{ bag.bag_id }}
+                </a>
+              </td>
+
+              <!-- Category -->
+              <td>
+                <span class="category-pill" style="background-color: {{ bag.category.display_color }}; color: {% if bag.category.code == 'YELLOW' or bag.category.code == 'WHITE' %}#071F1D{% else %}#FFFFFF{% endif %};">
+                  {{ bag.category.code }} &bull; {{ bag.category.name }}
+                </span>
+              </td>
+
+              <!-- Weight -->
+              <td class="fw-bold text-dark">
+                {{ bag.weight|floatformat:2 }} <span class="text-muted small">KG</span>
+              </td>
+
+              <!-- Location -->
+              <td>
+                <div class="small fw-semibold text-dark">{{ bag.ward }}</div>
+                <div class="text-muted" style="font-size: 0.72rem;">{{ bag.department }}</div>
+              </td>
+
+              <!-- Batch -->
+              <td>
+                {% if bag.batch %}
+                  <a href="{% url 'waste:batch_detail' bag.batch.batch_number %}" class="font-monospace text-muted text-decoration-none small">
+                    {{ bag.batch.batch_number }}
+                  </a>
+                {% else %}
+                  <span class="text-muted small">&mdash;</span>
+                {% endif %}
+              </td>
+
+              <!-- Date -->
+              <td class="small text-muted">
+                {{ bag.registered_at|date:"d M Y, H:i" }}
+              </td>
+
+              <!-- QR Status -->
+              <td>
+                <span class="status-badge {% if bag.qr_status == 'READY' %}bg-success-subtle text-success{% elif bag.qr_status == 'FAILED' %}bg-danger-subtle text-danger{% else %}bg-warning-subtle text-warning{% endif %}">
+                  <i class="bi bi-qr-code me-1"></i> {{ bag.get_qr_status_display }}
+                </span>
+              </td>
+
+              <!-- Custody Status -->
+              <td>
+                <span class="badge bg-light text-dark border" style="font-size: 0.72rem;">
+                  {{ bag.get_status_display }}
+                </span>
+              </td>
+
+              <!-- Row Actions -->
+              <td class="text-end pe-4">
+                <div class="d-inline-flex gap-1">
+                  <a href="{% url 'waste:bag_label' bag.bag_id %}" target="_blank" class="btn btn-sm btn-outline-secondary rounded-pill px-2 py-1" title="Print 100x75mm Thermal Label">
+                    <i class="bi bi-printer"></i>
+                  </a>
+                  <a href="{% url 'waste:qr_download' bag.bag_id %}" class="btn btn-sm btn-outline-secondary rounded-pill px-2 py-1" title="Download QR PNG">
+                    <i class="bi bi-download"></i>
+                  </a>
+                  <a href="{% url 'waste:bag_detail' bag.bag_id %}" class="btn btn-sm btn-outline-secondary rounded-pill px-2 py-1" title="View Full Manifest">
+                    <i class="bi bi-eye"></i>
+                  </a>
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="9" class="text-center py-5">
+                <div class="py-4">
+                  <div class="rounded-circle d-inline-flex align-items-center justify-content-center p-3 mb-3" style="background-color: #EEF1EF; color: #005B50; font-size: 2rem;">
+                    <i class="bi bi-trash"></i>
+                  </div>
+                  <h3 class="h5 fw-bold text-dark mb-1">No Matching Waste Bags</h3>
+                  <p class="text-muted small mb-3" style="max-width: 420px; margin: 0 auto;">
+                    {% if q or selected_category or selected_qr_status or selected_status or date_from or date_to %}
+                      No waste bags match your selected filter criteria. Try clearing filters to inspect all records.
+                    {% else %}
+                      Your hospital facility has not recorded any biomedical waste bags yet.
+                    {% endif %}
+                  </p>
+                  {% if q or selected_category or selected_qr_status or selected_status or date_from or date_to %}
+                    <a href="{% url 'waste:inventory' %}" class="btn btn-outline-secondary rounded-pill px-4 shadow-sm btn-sm">
+                      <i class="bi bi-x-circle me-1"></i> Clear Filters
+                    </a>
+                  {% else %}
+                    <a href="{% url 'waste:register' %}" class="btn text-white rounded-pill px-4 shadow-sm btn-sm" style="background-color: #005B50;">
+                      <i class="bi bi-plus-circle me-1"></i> Log First Batch
+                    </a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination Footer -->
+    {% if page_obj.has_other_pages %}
+      <div class="p-3 border-top d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2 bg-light">
+        <div class="text-muted small">
+          Showing records <strong>{{ page_obj.start_index }}</strong> to <strong>{{ page_obj.end_index }}</strong> of <strong>{{ page_obj.paginator.count }}</strong> total
+        </div>
+
+        <nav aria-label="Inventory pagination">
+          <ul class="pagination pagination-sm mb-0">
+            {% if page_obj.has_previous %}
+              <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if preserved_query_string %}&{{ preserved_query_string }}{% endif %}">&laquo;</a>
+              </li>
+            {% else %}
+              <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+              {% if page_obj.number == num %}
+                <li class="page-item active"><span class="page-link" style="background-color: #005B50; border-color: #005B50;">{{ num }}</span></li>
+              {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ num }}{% if preserved_query_string %}&{{ preserved_query_string }}{% endif %}">{{ num }}</a>
+                </li>
+              {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+              <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if preserved_query_string %}&{{ preserved_query_string }}{% endif %}">&raquo;</a>
+              </li>
+            {% else %}
+              <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+            {% endif %}
+          </ul>
+        </nav>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- G. Batch Operations Overview Section -->
+  <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div>
+        <h2 class="h5 fw-bold mb-1" style="color: #071F1D;">Recent Registration Batches</h2>
+        <p class="text-muted small mb-0">Consignment submissions grouped for bulk thermal sticker printing.</p>
+      </div>
+      <a href="{% url 'waste:register' %}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+        <i class="bi bi-plus me-1"></i> New Batch
+      </a>
+    </div>
+
+    <div class="table-responsive rounded-3 border">
+      <table class="table table-hover align-middle mb-0">
+        <thead style="background-color: #EEF1EF; color: #071F1D; font-size: 0.82rem;">
+          <tr>
+            <th class="ps-3">Batch Number</th>
+            <th>Registered At</th>
+            <th>Ward &amp; Department</th>
+            <th>Bag Count</th>
+            <th>Aggregate Weight</th>
+            <th>QR Breakdown</th>
+            <th class="text-end pe-3">Batch Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for batch in recent_batches %}
+            <tr>
+              <td class="ps-3">
+                <a href="{% url 'waste:batch_detail' batch.batch_number %}" class="font-monospace fw-bold text-decoration-none" style="color: #005B50;">
+                  {{ batch.batch_number }}
+                </a>
+              </td>
+              <td class="small text-muted">{{ batch.created_at|date:"d M Y, H:i" }}</td>
+              <td>
+                <div class="small fw-semibold text-dark">{{ batch.ward }}</div>
+                <div class="text-muted" style="font-size: 0.72rem;">{{ batch.department }}</div>
+              </td>
+              <td class="fw-bold">{{ batch.bag_count }}</td>
+              <td class="fw-bold" style="color: #F36B21;">{{ batch.total_weight|floatformat:2 }} <span class="text-muted small">KG</span></td>
+              <td>
+                <div class="d-flex gap-1" style="font-size: 0.7rem;">
+                  <span class="badge bg-success-subtle text-success">{{ batch.ready_count }} Ready</span>
+                  {% if batch.pending_count > 0 %}<span class="badge bg-warning-subtle text-warning">{{ batch.pending_count }} Pending</span>{% endif %}
+                  {% if batch.failed_count > 0 %}<span class="badge bg-danger-subtle text-danger">{{ batch.failed_count }} Failed</span>{% endif %}
+                </div>
+              </td>
+              <td class="text-end pe-3">
+                <a href="{% url 'waste:batch_labels' batch.batch_number %}" target="_blank" class="btn btn-sm btn-warning rounded-pill px-2 py-1 fw-bold text-dark" style="font-size: 0.75rem;">
+                  <i class="bi bi-printer-fill me-1"></i> Print Labels
+                </a>
+                <a href="{% url 'waste:batch_detail' batch.batch_number %}" class="btn btn-sm btn-outline-secondary rounded-pill px-2 py-1" style="font-size: 0.75rem;">
+                  <i class="bi bi-eye"></i> Details
+                </a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="7" class="text-center py-4 text-muted small">
+                No registration batches logged yet.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- Chart.js Integration -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const chartCanvas = document.getElementById("categoryDoughnutChart");
+  if (!chartCanvas) return;
+
+  const labels = {{ chart_labels_json|safe }};
+  const weights = {{ chart_weights_json|safe }};
+  const colors = {{ chart_colors_json|safe }};
+
+  const totalWeight = weights.reduce((acc, cur) => acc + cur, 0);
+
+  if (totalWeight > 0) {
+    new Chart(chartCanvas, {
+      type: "doughnut",
+      data: {
+        labels: labels,
+        datasets: [{
+          data: weights,
+          backgroundColor: colors,
+          borderColor: "#FFFFFF",
+          borderWidth: 2,
+          hoverOffset: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            callbacks: {
+              label: function (context) {
+                const label = context.label || "";
+                const val = context.raw || 0;
+                const pct = totalWeight > 0 ? ((val / totalWeight) * 100).toFixed(1) : 0;
+                return ` ${label}: ${val} KG (${pct}%)`;
+              }
+            }
+          }
+        },
+        cutout: "68%"
+      }
+    });
+  }
+});
+</script>
+{% endblock %}

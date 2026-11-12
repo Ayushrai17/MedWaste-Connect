@@ -1,0 +1,370 @@
+/* ==========================================================================
+   MedWaste Connect — Cinematic Hero Animation Stylesheet
+   Stage 3.3: Full-Bleed 2.5D Architectural Environment & Ultra-Smooth Movement
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   HERO FULL-BLEED SECTION CONTAINER
+   Top spacing calibrated to ~42px below navbar (35–55px requirement)
+   -------------------------------------------------------------------------- */
+.hero-section.hero-fullbleed-section {
+  position: relative;
+  background-color: var(--cream);
+  min-height: clamp(540px, 46vw, 680px);
+  overflow: hidden;
+  padding-top: 42px; /* Exactly 42px top spacing below navbar (35–55px target) */
+  padding-bottom: 0;
+  padding-left: 0;
+  padding-right: 0;
+  display: block; /* Avoid flex centering that causes excessive top displacement */
+}
+
+/* Foreground Container holding the Left Column Copy */
+.hero-container {
+  position: relative;
+  z-index: 15;
+  width: 100%;
+  pointer-events: none;
+}
+
+.hero-copy-col {
+  pointer-events: auto;
+  position: relative;
+  z-index: 20;
+  max-width: 440px; /* Sits cleanly on cream negative space with zero building collision */
+}
+
+.hero-copy-col .hero-title {
+  font-size: clamp(2.3rem, 3.2vw, 2.75rem);
+  line-height: 1.18;
+  margin-bottom: 1.25rem;
+  max-width: 440px;
+  color: var(--navy);
+  font-weight: 800;
+}
+
+.hero-copy-col .hero-lead {
+  font-size: 1.05rem;
+  line-height: 1.55;
+  color: var(--navy);
+  margin-bottom: 2rem;
+  max-width: 420px;
+}
+
+/* --------------------------------------------------------------------------
+   FULL-BLEED CINEMATIC HOSPITAL ENVIRONMENT
+   Desktop (>=992px): Occupies ~72% visual width (65%–75%), bleeds to extreme
+   RIGHT edge and down to the BOTTOM edge of the hero section.
+   Zero cards, zero borders, zero frame shadows.
+   -------------------------------------------------------------------------- */
+.hero-fullbleed-backdrop {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 72%; /* 65%–75% visual width requirement */
+  height: 100%;
+  pointer-events: none;
+  z-index: 5;
+  display: flex;
+  align-items: flex-end; /* Ground driveway at bottom plane */
+  justify-content: flex-end; /* Reach extreme right boundary */
+  overflow: visible;
+}
+
+/* Outer wrapper: Unframed, zero card padding, zero borders */
+.hero-scene-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: visible;
+}
+
+/* Floating Replay Pill Button */
+.hero-replay-btn {
+  position: absolute;
+  top: 18px;
+  right: 28px;
+  z-index: 70;
+  background: rgba(20, 31, 43, 0.70);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 20px;
+  padding: 5px 13px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.25s ease;
+  opacity: 0.88;
+  pointer-events: auto;
+}
+
+.hero-replay-btn:hover {
+  background: var(--teal-deep, #1B6585);
+  color: #FFFFFF;
+  opacity: 1;
+  transform: scale(1.05);
+  box-shadow: 0 4px 14px rgba(27, 101, 133, 0.35);
+}
+
+/* Master 16:9 Perspective Canvas Stage — Unconfined, No Card, No Box Shadow */
+.hero-scene-stage {
+  position: absolute;
+  right: clamp(-150px, -9vw, -80px); /* Clean natural right edge bleed */
+  bottom: 0px; /* Extends flush down to bottom edge of hero section */
+  height: 102%; /* Sits full height commanding right 65–75% of desktop hero */
+  aspect-ratio: 1672 / 941;
+  max-width: none;
+  overflow: visible; /* NO card clipping */
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  user-select: none;
+  perspective: 1200px;
+  transform-style: preserve-3d;
+}
+
+/* Base layer positioning rules */
+.hero-layer {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+  transform-origin: center center;
+  will-change: transform, opacity;
+}
+
+.hero-layer img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* --------------------------------------------------------------------------
+   LAYER 1 — HOSPITAL (Stationary Background)
+   Original hospital campus reaching extreme right viewport boundary
+   -------------------------------------------------------------------------- */
+.hero-layer-hospital {
+  bottom: 0;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+  transform-origin: right bottom;
+}
+
+.hero-img-hospital {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: bottom right;
+}
+
+/* --------------------------------------------------------------------------
+   LAYER 2 — DRIVEWAY (Ground Plane)
+   Curved tiled driveway grounded at base of entrance
+   -------------------------------------------------------------------------- */
+.hero-layer-driveway {
+  bottom: 0;
+  right: 0;
+  width: 100%;
+  z-index: 20;
+}
+
+.hero-img-driveway {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* --------------------------------------------------------------------------
+   LAYER 1B — HOSPITAL RIGHT WING OCCLUSION (Physical Depth Layer)
+   Matches right building wing so van emerges from behind the structure
+   -------------------------------------------------------------------------- */
+.hero-layer-wing {
+  bottom: 0;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 26;
+  pointer-events: none;
+}
+
+.hero-img-wing {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: bottom right;
+}
+
+/* --------------------------------------------------------------------------
+   LAYER 3 — WASTE BINS (Foremost Depth Layer — Foreground Collection Area)
+   Colour-coded bins (Yellow, Red, White, Blue) rendered above van path.
+   Van travels behind bins; bins naturally occlude the moving vehicle.
+   Dimensions enlarged by ~11.6% (width: 26.8%) for authoritative foreground scale.
+   -------------------------------------------------------------------------- */
+.hero-layer-bins {
+  left: 51.2%;
+  bottom: 8.6%;
+  width: 26.8%; /* Enlarged by ~11.6% from 24.0% */
+  z-index: 60;  /* Foremost foreground layer: renders above van (z-index: 35) & wing (z-index: 26) */
+  transform-origin: center bottom;
+}
+
+.hero-img-bins {
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 6px 14px rgba(20, 31, 43, 0.28));
+}
+
+/* --------------------------------------------------------------------------
+   LAYER 4 — VEHICLE SHADOW (Contact Shadow)
+   Initial state: Hidden behind hospital right wing in CSS before initial paint
+   Prevents any initial flash of uninitialized / parked position (FOUC)
+   -------------------------------------------------------------------------- */
+.hero-layer-shadow {
+  left: 6.0%;
+  bottom: 5.0%;
+  width: 48.0%;
+  z-index: 21;
+  opacity: 0.35;
+  transform-origin: center bottom;
+  transform: translate(140%, -24%) scale(0.38, 0.28) rotate(-5deg);
+  will-change: transform, opacity;
+}
+
+.hero-img-shadow {
+  width: 100%;
+  height: auto;
+  mix-blend-mode: multiply;
+}
+
+/* --------------------------------------------------------------------------
+   LAYER 5 — COLLECTION VAN (Foreground Hero Vehicle)
+   Initial state: Hidden behind hospital right wing in CSS before initial paint
+   Prevents any initial flash of uninitialized / parked position (FOUC)
+   -------------------------------------------------------------------------- */
+.hero-layer-van {
+  left: 8.0%;
+  bottom: 6.5%;
+  width: 44.0%;
+  z-index: 22;
+  transform-origin: 35% 85%; /* Pivot around front wheel contact axis */
+  transform: translate(140%, -24%) scale(0.38) rotate(-5deg);
+  will-change: transform, opacity;
+}
+
+.hero-img-van {
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 8px 16px rgba(20, 31, 43, 0.16));
+}
+
+/* Subtle cinematic ambient lighting glow */
+.hero-scene-stage::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at 75% 25%, rgba(255, 255, 255, 0.15) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 60;
+}
+
+/* --------------------------------------------------------------------------
+   RESPONSIVENESS & BREAKPOINTS (Full-Bleed Desktop & Natural Mobile Stacking)
+   -------------------------------------------------------------------------- */
+@media (min-width: 1400px) {
+  .hero-fullbleed-backdrop {
+    width: 68%; /* Optimal architectural balance on wide screens */
+  }
+}
+
+@media (min-width: 1200px) and (max-width: 1399.98px) {
+  .hero-fullbleed-backdrop {
+    width: 72%;
+  }
+}
+
+@media (min-width: 992px) and (max-width: 1199.98px) {
+  .hero-fullbleed-backdrop {
+    width: 75%;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .hero-section.hero-fullbleed-section {
+    min-height: auto;
+    padding: 3rem 0 2rem 0;
+    flex-direction: column;
+  }
+
+  .hero-container {
+    order: 1;
+    margin-bottom: 2rem;
+    pointer-events: auto;
+  }
+
+  .hero-copy-col {
+    max-width: 100%;
+    text-align: center;
+  }
+
+  .hero-copy-col .d-flex {
+    justify-content: center;
+  }
+
+  .hero-fullbleed-backdrop {
+    order: 2;
+    position: relative;
+    top: auto;
+    right: auto;
+    bottom: auto;
+    width: 100%;
+    max-width: 640px;
+    height: auto;
+    aspect-ratio: 1672 / 941;
+    margin: 0 auto;
+    overflow: visible;
+  }
+
+  .hero-scene-stage {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    aspect-ratio: 1672 / 941;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .hero-replay-btn {
+    top: 10px;
+    right: 12px;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .hero-section.hero-fullbleed-section {
+    padding: 2rem 0 1.5rem 0;
+  }
+
+  .hero-fullbleed-backdrop {
+    max-width: 100%;
+  }
+}
+

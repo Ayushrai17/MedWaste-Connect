@@ -1,0 +1,139 @@
+{% extends "dashboard_base.html" %}
+{% load static %}
+
+{% block title %}Exception {{ discrepancy.discrepancy_reference }} — MedWaste Connect{% endblock %}
+
+{% block dashboard_content %}
+<div class="container-fluid p-3 p-md-4">
+  <!-- Breadcrumb -->
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb small">
+      <li class="breadcrumb-item"><a href="{% url 'tracking:tracking_dashboard' %}" class="text-decoration-none" style="color: #005B50;">Tracking Hub</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'tracking:discrepancy_list' %}" class="text-decoration-none" style="color: #005B50;">Exceptions</a></li>
+      <li class="breadcrumb-item active" aria-current="page">{{ discrepancy.discrepancy_reference }}</li>
+    </ol>
+  </nav>
+
+  <!-- Hero Header -->
+  <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white p-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+      <div>
+        <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+          <span class="badge bg-dark font-monospace" style="font-size: 0.85rem;">{{ discrepancy.discrepancy_reference }}</span>
+          <span class="badge {% if discrepancy.severity == 'CRITICAL' %}bg-danger{% elif discrepancy.severity == 'HIGH' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+            Severity: {{ discrepancy.get_severity_display }}
+          </span>
+          <span class="badge {% if discrepancy.status == 'RESOLVED' or discrepancy.status == 'CLOSED' %}bg-success{% else %}bg-warning text-dark{% endif %}">
+            Status: {{ discrepancy.get_status_display }}
+          </span>
+        </div>
+        <h3 class="fw-bold mb-1 text-dark">{{ discrepancy.get_discrepancy_type_display }}</h3>
+        <p class="text-muted small mb-0">
+          Reported by <strong>{{ discrepancy.reported_by.get_full_name|default:discrepancy.reported_by.username }}</strong> on {{ discrepancy.reported_at|date:"d M Y, H:i:s" }}
+        </p>
+      </div>
+      <div>
+        {% if discrepancy.bag %}
+          <a href="{% url 'tracking:bag_tracking_detail' discrepancy.bag.bag_id %}" class="btn btn-outline-secondary btn-sm rounded-pill">
+            <i class="bi bi-clock-history me-1"></i> View Bag Timeline
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Left Column: Incident Description & Relationships -->
+    <div class="col-lg-7">
+      <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white">
+        <div class="card-header bg-white border-bottom py-3 px-4">
+          <h6 class="fw-bold mb-0 text-dark">
+            <i class="bi bi-file-earmark-text me-2" style="color: #005B50;"></i> Incident Details
+          </h6>
+        </div>
+        <div class="card-body p-4">
+          <div class="p-3 bg-light rounded-3 mb-4 text-dark border">
+            {{ discrepancy.description|linebreaksbr }}
+          </div>
+
+          <h6 class="fw-bold text-dark small text-uppercase mb-3">Linked Entities</h6>
+          <div class="row g-3 small">
+            {% if discrepancy.bag %}
+              <div class="col-sm-6">
+                <span class="text-muted d-block">Waste Bag ID:</span>
+                <a href="{% url 'tracking:bag_tracking_detail' discrepancy.bag.bag_id %}" class="fw-bold font-monospace text-decoration-none" style="color: #005B50;">
+                  {{ discrepancy.bag.bag_id }}
+                </a>
+                <span class="text-muted d-block mt-1">Weight: {{ discrepancy.bag.weight }} KG</span>
+              </div>
+            {% endif %}
+            {% if discrepancy.collection_request %}
+              <div class="col-sm-6">
+                <span class="text-muted d-block">Collection Request:</span>
+                <span class="font-monospace fw-semibold">{{ discrepancy.collection_request.reference_number }}</span>
+              </div>
+            {% endif %}
+            {% if discrepancy.reception_manifest %}
+              <div class="col-sm-6">
+                <span class="text-muted d-block">Reception Manifest:</span>
+                <span class="font-monospace fw-semibold">{{ discrepancy.reception_manifest.reference_number }}</span>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Resolution Workflow -->
+    <div class="col-lg-5">
+      <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white">
+        <div class="card-header bg-white border-bottom py-3 px-4">
+          <h6 class="fw-bold mb-0 text-dark">
+            <i class="bi bi-check-circle-fill me-2 text-success"></i> Resolution &amp; Corrective Action
+          </h6>
+        </div>
+        <div class="card-body p-4">
+          {% if discrepancy.status == 'RESOLVED' or discrepancy.status == 'CLOSED' %}
+            <div class="alert alert-success border-0 rounded-3 p-3 mb-3">
+              <div class="d-flex align-items-center gap-2 fw-bold mb-1">
+                <i class="bi bi-check2-circle fs-5"></i> Exception Closed / Resolved
+              </div>
+              <div class="small">
+                Resolved by <strong>{{ discrepancy.resolved_by.get_full_name|default:discrepancy.resolved_by.username }}</strong>
+                on {{ discrepancy.resolved_at|date:"d M Y, H:i" }}
+              </div>
+            </div>
+            <div class="border rounded-3 p-3 bg-light small mb-3">
+              <div class="fw-bold text-dark mb-1">Corrective Action Notes:</div>
+              <div class="text-secondary">{{ discrepancy.resolution_notes|linebreaksbr }}</div>
+            </div>
+          {% endif %}
+
+          {% if can_resolve %}
+            <form method="post">
+              {% csrf_token %}
+              <div class="mb-3">
+                <label class="form-label fw-semibold small">Update Resolution Status</label>
+                {{ form.status }}
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-semibold small">Administrative Action Notes</label>
+                {{ form.resolution_notes }}
+                <div class="form-text small">Explain corrective containment measures, weight recalibration, or verified disposal.</div>
+              </div>
+              <button type="submit" class="btn btn-primary rounded-pill w-100 fw-semibold" style="background-color: #005B50; border-color: #005B50;">
+                <i class="bi bi-shield-check me-1"></i> Save Resolution Record
+              </button>
+            </form>
+          {% elif discrepancy.status != 'RESOLVED' and discrepancy.status != 'CLOSED' %}
+            <div class="alert alert-warning border-0 rounded-3 p-3 small mb-0">
+              <i class="bi bi-hourglass-split me-1"></i> This exception is currently under administrative investigation. Only administrators can submit resolution sign-offs.
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

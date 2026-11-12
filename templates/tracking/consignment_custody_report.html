@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Consignment Manifest — {{ col_req.reference_number }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    body {
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+      background: #F7F7F5;
+      color: #071F1D;
+    }
+    .manifest-sheet {
+      max-width: 900px;
+      margin: 2rem auto;
+      background: #FFFFFF;
+      padding: 3rem;
+      border: 1px solid #CBD5E1;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.06);
+      border-radius: 8px;
+    }
+    .manifest-header {
+      border-bottom: 2px solid #005B50;
+      padding-bottom: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .section-title {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+      color: #005B50;
+      border-bottom: 1px solid #E2E8F0;
+      padding-bottom: 0.4rem;
+      margin-top: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    .data-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      color: #64748B;
+      font-weight: 600;
+    }
+    .data-value {
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: #071F1D;
+    }
+    @media print {
+      body { background: white !important; }
+      .manifest-sheet {
+        margin: 0;
+        padding: 1.5rem;
+        box-shadow: none !important;
+        border: none !important;
+        max-width: 100% !important;
+      }
+      .no-print { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="no-print bg-dark text-white py-2 px-4 d-flex justify-content-between align-items-center">
+  <div class="small">
+    <i class="bi bi-truck text-success me-1"></i> Bio-Medical Waste Consignment Transit &amp; Handover Manifest
+  </div>
+  <div class="d-flex gap-2">
+    <button onclick="window.print()" class="btn btn-sm btn-success rounded-pill fw-semibold">
+      <i class="bi bi-printer me-1"></i> Print / Save Manifest
+    </button>
+    <button onclick="window.close()" class="btn btn-sm btn-outline-light rounded-pill">
+      Close
+    </button>
+  </div>
+</div>
+
+<div class="manifest-sheet">
+  <!-- Header -->
+  <div class="manifest-header d-flex justify-content-between align-items-start">
+    <div>
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <span class="badge" style="background-color: #005B50; color: white;">
+          BMW RULES FORM II &bull; DISPATCH MANIFEST
+        </span>
+      </div>
+      <h3 class="fw-bold mb-1 text-dark">CONSIGNMENT CHAIN OF CUSTODY MANIFEST</h3>
+      <p class="text-muted small mb-0">Multi-Bag Batch Tracking, Dock Transfer &amp; Gate Verification Record</p>
+    </div>
+    <div class="text-end">
+      <div class="data-label">Consignment Reference</div>
+      <div class="data-value font-monospace" style="color: #005B50;">{{ col_req.reference_number }}</div>
+      <div class="text-muted" style="font-size: 0.72rem;">Printed: {{ generated_at|date:"d M Y, H:i" }}</div>
+    </div>
+  </div>
+
+  <!-- Consignment Summary -->
+  <div class="section-title">1. Dispatch &amp; Route Logistics</div>
+  <div class="row g-3">
+    <div class="col-4">
+      <div class="data-label">Originating HCF / Hospital</div>
+      <div class="data-value">{{ col_req.hospital.organization_name|default:col_req.hospital.username }}</div>
+      <div class="text-muted small">{{ col_req.pickup_address }}</div>
+    </div>
+    <div class="col-4">
+      <div class="data-label">Assigned Waste Collector</div>
+      <div class="data-value">{{ col_req.assigned_collector.get_full_name|default:col_req.assigned_collector.username|default:"Pending Assignment" }}</div>
+      <div class="text-muted small">Confirmed Pickup: {{ col_req.confirmed_pickup_date|date:"d M Y" }} {{ col_req.confirmed_pickup_time|time:"H:i" }}</div>
+    </div>
+    <div class="col-4">
+      <div class="data-label">Designated CBWTF Facility</div>
+      <div class="data-value">{{ col_req.destination_facility.name|default:"Authorized Treatment Plant" }}</div>
+      <div class="text-muted small">Status: {{ col_req.get_status_display }}</div>
+    </div>
+  </div>
+
+  <!-- Bags Table -->
+  <div class="section-title">2. Consignment Waste Bag Manifest ({{ bags|length }} Items)</div>
+  <div class="table-responsive">
+    <table class="table table-bordered table-sm align-middle" style="font-size: 0.82rem;">
+      <thead class="table-light">
+        <tr>
+          <th>#</th>
+          <th>Bag Tracking ID</th>
+          <th>Category</th>
+          <th>Ward / Unit</th>
+          <th>Weight</th>
+          <th>Custody Status</th>
+          <th>QR Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for b in bags %}
+          <tr>
+            <td>{{ forloop.counter }}</td>
+            <td class="font-monospace fw-bold">{{ b.bag_id }}</td>
+            <td>
+              <span class="badge" style="background-color: {{ b.category.display_color }}; color: white;">
+                {{ b.category.code }}
+              </span>
+              {{ b.category.name }}
+            </td>
+            <td>{{ b.ward }}</td>
+            <td class="fw-semibold">{{ b.weight }} KG</td>
+            <td>{{ b.get_status_display }}</td>
+            <td>{{ b.get_qr_status_display }}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="7" class="text-center text-muted">No bags associated with this consignment.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot class="table-light fw-bold">
+        <tr>
+          <td colspan="4" class="text-end">Total Consignment Weight:</td>
+          <td>{{ col_req.total_weight }} KG</td>
+          <td colspan="2">Total: {{ col_req.total_bags }} Bags</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <!-- Signatures -->
+  <div class="section-title">3. Multi-Party Handover Sign-Offs</div>
+  <div class="row g-3 mt-1">
+    <div class="col-4">
+      <div class="border rounded p-3 text-center bg-light">
+        <div class="data-label mb-2">Hospital Waste Supervisor</div>
+        <div class="fw-semibold text-dark">{{ col_req.hospital.organization_name|default:col_req.hospital.username }}</div>
+        <div class="text-success small mt-2"><i class="bi bi-check-circle-fill"></i> Digitally Signed</div>
+      </div>
+    </div>
+    <div class="col-4">
+      <div class="border rounded p-3 text-center bg-light">
+        <div class="data-label mb-2">Logistics Transporter Driver</div>
+        <div class="fw-semibold text-dark">{{ col_req.assigned_collector.get_full_name|default:col_req.assigned_collector.username|default:"Assigned Transporter" }}</div>
+        <div class="text-success small mt-2"><i class="bi bi-check-circle-fill"></i> Digitally Signed</div>
+      </div>
+    </div>
+    <div class="col-4">
+      <div class="border rounded p-3 text-center bg-light">
+        <div class="data-label mb-2">Treatment Facility Gate QA</div>
+        <div class="fw-semibold text-dark">{{ col_req.destination_facility.name|default:"CBWTF Facility" }}</div>
+        <div class="text-success small mt-2"><i class="bi bi-check-circle-fill"></i> Gate Sign-Off</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-4 pt-3 border-top d-flex justify-content-between align-items-center text-muted" style="font-size: 0.72rem;">
+    <div>MedWaste Connect &bull; Regulatory Compliance &amp; Manifest System</div>
+    <div>Manifest Ref: {{ col_req.reference_number }}</div>
+  </div>
+</div>
+
+</body>
+</html>
+

@@ -1,0 +1,64 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}Decline Pickup Assignment — {{ collection_req.reference_number }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="container-fluid py-3 px-md-4">
+
+  <!-- Breadcrumb -->
+  <div class="mb-4">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-1 small">
+        <li class="breadcrumb-item"><a href="{% url 'collection:collector_dashboard' %}" class="text-decoration-none" style="color: #005B50;">Collector Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'collection:collector_request_detail' collection_req.reference_number %}" class="text-decoration-none" style="color: #005B50;">{{ collection_req.reference_number }}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Decline Assignment</li>
+      </ol>
+    </nav>
+    <h1 class="h3 fw-bold mb-1 text-danger">Decline Collection Assignment</h1>
+    <p class="text-muted small mb-0">
+      Please record the reason you are unable to fulfill this scheduled collection so dispatch can reassign the route.
+    </p>
+  </div>
+
+  <div class="row justify-content-center">
+    <div class="col-lg-6">
+      <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+        <div class="d-flex align-items-center gap-3 p-3 rounded-3 mb-4" style="background-color: #FFF3EB; border-left: 4px solid #F36B21;">
+          <i class="bi bi-truck fs-3" style="color: #F36B21;"></i>
+          <div>
+            <div class="fw-bold text-dark">{{ collection_req.reference_number }}</div>
+            <div class="small text-muted">
+              Hospital: <strong>{{ collection_req.hospital.organization_name|default:collection_req.hospital.username }}</strong> &bull;
+              Scheduled: {{ collection_req.effective_pickup_date|date:"d M Y" }} at {{ collection_req.effective_pickup_time|time:"H:i" }}
+            </div>
+          </div>
+        </div>
+
+        <form method="post" action="">
+          {% csrf_token %}
+          <div class="mb-4">
+            <label for="{{ form.rejection_reason.id_for_label }}" class="form-label text-dark fw-semibold small mb-1">
+              Mandatory Explanation / Reason *
+            </label>
+            {{ form.rejection_reason }}
+            <div class="form-text" style="font-size: 0.72rem;">
+              Provide an operational explanation (e.g., vehicle mechanical fault, full route capacity, emergency breakdown).
+            </div>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-danger rounded-pill px-4 fw-semibold shadow-sm">
+              <i class="bi bi-x-circle me-1"></i> Confirm Decline &amp; Return to Queue
+            </button>
+            <a href="{% url 'collection:collector_request_detail' collection_req.reference_number %}" class="btn btn-outline-secondary rounded-pill px-3">
+              Cancel
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+

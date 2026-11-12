@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}403 Forbidden — Access Restricted — {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<section class="py-5 d-flex align-items-center" style="background-color: var(--cream, #F7F7F5); min-height: 75vh;">
+  <div class="container text-center" style="max-width: 620px;">
+    <!-- Icon Container -->
+    <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-4 shadow-sm" style="width: 80px; height: 80px; background-color: rgba(243, 107, 33, 0.12); color: #F36B21; font-size: 2.2rem;">
+      <i class="bi bi-shield-slash"></i>
+    </div>
+
+    <!-- Error Code & Title -->
+    <span class="badge text-uppercase px-3 py-1 mb-2 font-monospace fw-bold" style="background-color: #071F1D; color: #FFFFFF; font-size: 0.75rem; letter-spacing: 0.08em;">
+      HTTP 403 Forbidden
+    </span>
+    <h1 class="h2 fw-bold mb-3" style="color: #071F1D;">Access Denied or Session Restricted</h1>
+    
+    <!-- User-Friendly Explanation -->
+    <p class="text-muted mb-4" style="font-size: 0.95rem; line-height: 1.6;">
+      {% if exception %}
+        {{ exception }}
+      {% else %}
+        You do not have the required role authorizations to view this administrative or operational workspace, or your account may be inactive/suspended.
+      {% endif %}
+    </p>
+
+    <!-- Context Guidance Box -->
+    <div class="p-3 rounded-3 mb-4 text-start small border" style="background-color: #FFFFFF; border-color: rgba(0, 91, 80, 0.15) !important;">
+      <div class="fw-semibold text-dark mb-1"><i class="bi bi-info-circle me-1" style="color: #005B50;"></i> What should you do?</div>
+      <ul class="text-muted mb-0 ps-3">
+        <li>If you believe your account role should access this area, contact your facility administrator.</li>
+        <li>If your organization account was recently suspended, review communications from the Platform Directorate.</li>
+        <li>You can safely return to your assigned portal or the public homepage below.</li>
+      </ul>
+    </div>
+
+    <!-- Actions -->
+    <div class="d-flex flex-wrap justify-content-center gap-2">
+      <a href="/" class="btn btn-sm btn-outline-dark rounded-pill px-4 py-2">
+        <i class="bi bi-house me-1"></i> Public Homepage
+      </a>
+      {% if user.is_authenticated %}
+        <a href="{% url 'dashboard_redirect' %}" class="btn btn-sm text-white rounded-pill px-4 py-2" style="background-color: #005B50;">
+          <i class="bi bi-speedometer2 me-1"></i> My Dashboard
+        </a>
+      {% else %}
+        <a href="{% url 'login' %}" class="btn btn-sm text-white rounded-pill px-4 py-2" style="background-color: #005B50;">
+          <i class="bi bi-box-arrow-in-right me-1"></i> Sign In
+        </a>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}
+

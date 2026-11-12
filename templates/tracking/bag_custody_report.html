@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Custody Certificate — {{ bag.bag_id }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    body {
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+      background: #F7F7F5;
+      color: #071F1D;
+    }
+    .certificate-sheet {
+      max-width: 860px;
+      margin: 2rem auto;
+      background: #FFFFFF;
+      padding: 3rem;
+      border: 1px solid #CBD5E1;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.06);
+      border-radius: 8px;
+    }
+    .cert-header {
+      border-bottom: 2px solid #005B50;
+      padding-bottom: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .section-title {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+      color: #005B50;
+      border-bottom: 1px solid #E2E8F0;
+      padding-bottom: 0.4rem;
+      margin-top: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    .data-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      color: #64748B;
+      font-weight: 600;
+      margin-bottom: 0.2rem;
+    }
+    .data-value {
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: #071F1D;
+    }
+    .signature-box {
+      border: 1px dashed #94A3B8;
+      border-radius: 6px;
+      padding: 1.25rem;
+      background: #F8FAFC;
+      min-height: 110px;
+    }
+    @media print {
+      body { background: white !important; }
+      .certificate-sheet {
+        margin: 0;
+        padding: 1.5rem;
+        box-shadow: none !important;
+        border: none !important;
+        max-width: 100% !important;
+      }
+      .no-print { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="no-print bg-dark text-white py-2 px-4 d-flex justify-content-between align-items-center">
+  <div class="small">
+    <i class="bi bi-shield-lock-fill text-success me-1"></i> Bio-Medical Waste Management Rules Statutory Audit Certificate
+  </div>
+  <div class="d-flex gap-2">
+    <button onclick="window.print()" class="btn btn-sm btn-success rounded-pill fw-semibold">
+      <i class="bi bi-printer me-1"></i> Print / Save as PDF
+    </button>
+    <button onclick="window.close()" class="btn btn-sm btn-outline-light rounded-pill">
+      Close
+    </button>
+  </div>
+</div>
+
+<div class="certificate-sheet">
+  <!-- Certificate Header -->
+  <div class="cert-header d-flex justify-content-between align-items-start">
+    <div>
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <span class="badge" style="background-color: #005B50; color: white; letter-spacing: 0.05em; font-size: 0.75rem;">
+          FORM VI &bull; SCHEDULE I &amp; IV COMPLIANT
+        </span>
+        <span class="badge bg-secondary-subtle text-secondary" style="font-size: 0.75rem;">
+          BMW RULES, 2016
+        </span>
+      </div>
+      <h3 class="fw-bold mb-1 text-dark" style="letter-spacing: -0.02em;">STATUTORY CHAIN OF CUSTODY CERTIFICATE</h3>
+      <p class="text-muted small mb-0">Biomedical Waste Tracking, Dual-Handover Verification &amp; Final Disposal Record</p>
+    </div>
+    <div class="text-end">
+      <div class="data-label">Audit Certificate Ref</div>
+      <div class="data-value font-monospace" style="color: #005B50;">MWC-CERT-{{ bag.bag_id }}</div>
+      <div class="text-muted" style="font-size: 0.72rem;">Issued: {{ generated_at|date:"d M Y, H:i:s" }}</div>
+    </div>
+  </div>
+
+  <!-- SECTION 1: WASTE SPECIFICATIONS -->
+  <div class="section-title">1. Waste Identification &amp; Physical Specifications</div>
+  <div class="row g-3">
+    <div class="col-3">
+      <div class="data-label">Bag Tracking ID</div>
+      <div class="data-value font-monospace">{{ bag.bag_id }}</div>
+    </div>
+    <div class="col-3">
+      <div class="data-label">Waste Category</div>
+      <div class="data-value">
+        <span class="badge" style="background-color: {{ bag.category.display_color }}; color: white;">
+          {{ bag.category.code }}
+        </span>
+        {{ bag.category.name }}
+      </div>
+    </div>
+    <div class="col-3">
+      <div class="data-label">Scale Verified Weight</div>
+      <div class="data-value">{{ bag.weight }} {{ bag.weight_unit }}</div>
+    </div>
+    <div class="col-3">
+      <div class="data-label">Lifecycle Status</div>
+      <div class="data-value text-uppercase" style="color: #005B50;">{{ bag.get_status_display }}</div>
+    </div>
+    <div class="col-6">
+      <div class="data-label">Generating Health Care Facility (HCF)</div>
+      <div class="data-value">{{ bag.hospital.organization_name|default:bag.hospital.username }}</div>
+      <div class="text-muted small">Ward / Unit: {{ bag.ward }} &bull; Department: {{ bag.department }}</div>
+    </div>
+    <div class="col-6">
+      <div class="data-label">Cryptographic Token (128-bit)</div>
+      <div class="data-value font-monospace small text-truncate" title="{{ bag.qr_token }}">{{ bag.qr_token }}</div>
+    </div>
+  </div>
+
+  <!-- SECTION 2: TRANSPORTATION LOGISTICS -->
+  <div class="section-title">2. Collection Dispatch &amp; Transit Logistics</div>
+  <div class="row g-3">
+    <div class="col-4">
+      <div class="data-label">Dispatch Manifest Number</div>
+      <div class="data-value font-monospace">{% if col_req %}{{ col_req.reference_number }}{% else %}Direct Transfer{% endif %}</div>
+    </div>
+    <div class="col-4">
+      <div class="data-label">Assigned Collector / Driver</div>
+      <div class="data-value">
+        {% if col_req.assigned_collector %}
+          {{ col_req.assigned_collector.get_full_name|default:col_req.assigned_collector.username }}
+        {% else %}
+          Authorized Transporter
+        {% endif %}
+      </div>
+    </div>
+    <div class="col-4">
+      <div class="data-label">Actual Collection Timestamp</div>
+      <div class="data-value">{% if col_req.actual_collection_time %}{{ col_req.actual_collection_time|date:"d M Y, H:i" }}{% else %}N/A{% endif %}</div>
+    </div>
+  </div>
+
+  <!-- SECTION 3: TREATMENT FACILITY RECEPTION -->
+  <div class="section-title">3. Common Treatment Facility (CBWTF) Reception</div>
+  <div class="row g-3">
+    <div class="col-4">
+      <div class="data-label">Treatment Facility</div>
+      <div class="data-value">{% if receipt.reception_manifest.facility %}{{ receipt.reception_manifest.facility.name }}{% else %}Authorized Plant{% endif %}</div>
+    </div>
+    <div class="col-4">
+      <div class="data-label">Inbound Gate Manifest</div>
+      <div class="data-value font-monospace">{% if receipt.reception_manifest %}{{ receipt.reception_manifest.reference_number }}{% else %}N/A{% endif %}</div>
+    </div>
+    <div class="col-4">
+      <div class="data-label">Gate Scale Weight</div>
+      <div class="data-value">{% if receipt %}{{ receipt.actual_weight }}{% else %}{{ bag.weight }}{% endif %} KG</div>
+    </div>
+    <div class="col-6">
+      <div class="data-label">Inspection &amp; Packaging Condition</div>
+      <div class="data-value">{% if receipt %}{{ receipt.get_packaging_condition_display }}{% else %}Intact &amp; Sealed{% endif %}</div>
+    </div>
+    <div class="col-6">
+      <div class="data-label">Acceptance Outcome</div>
+      <div class="data-value">{% if receipt %}{{ receipt.get_acceptance_decision_display }}{% else %}Accepted for Prescribed Treatment{% endif %}</div>
+    </div>
+  </div>
+
+  <!-- SECTION 4: TREATMENT & FINAL RESIDUE DISPOSAL -->
+  <div class="section-title">4. Prescribed Treatment &amp; Residue Disposal</div>
+  <div class="row g-3">
+    <div class="col-4">
+      <div class="data-label">Treatment Processing Batch</div>
+      <div class="data-value font-monospace">{% if t_batch %}{{ t_batch.batch_number }}{% else %}Batch Pending / Completed{% endif %}</div>
+    </div>
+    <div class="col-4">
+      <div class="data-label">Treatment Method Applied</div>
+      <div class="data-value">{% if t_batch %}{{ t_batch.get_treatment_method_display }}{% else %}{{ bag.category.treatment_description }}{% endif %}</div>
+    </div>
+    <div class="col-4">
+      <div class="data-label">Treatment Concluded Time</div>
+      <div class="data-value">{% if t_batch.end_time %}{{ t_batch.end_time|date:"d M Y, H:i" }}{% else %}{{ bag.updated_at|date:"d M Y, H:i" }}{% endif %}</div>
+    </div>
+    <div class="col-6">
+      <div class="data-label">Final Residue Disposal Method</div>
+      <div class="data-value">{% if d_record %}{{ d_record.get_final_disposal_method_display }}{% else %}Secured Landfill / Authorized Recycler{% endif %}</div>
+    </div>
+    <div class="col-6">
+      <div class="data-label">Disposal Location</div>
+      <div class="data-value">{% if d_record %}{{ d_record.disposal_location }}{% else %}State Pollution Control Board Authorized Site{% endif %}</div>
+    </div>
+  </div>
+
+  <!-- SECTION 5: DUAL SIGN-OFF & NON-REPUDIATION VERIFICATION -->
+  <div class="section-title">5. Non-Repudiation &amp; Dual Sign-Off Handovers</div>
+  <div class="row g-3 mt-1">
+    <div class="col-6">
+      <div class="signature-box">
+        <div class="data-label">Releasing Entity (Hospital Waste Officer)</div>
+        <div class="data-value">{{ bag.hospital.organization_name|default:bag.hospital.username }}</div>
+        <div class="text-muted small mt-1">
+          <i class="bi bi-shield-check text-success"></i> Digital Cryptographic Handshake Verified
+        </div>
+        <div class="text-muted" style="font-size: 0.68rem; margin-top: 0.5rem;">
+          Sign-off: {{ bag.registered_at|date:"d M Y, H:i:s" }}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-6">
+      <div class="signature-box">
+        <div class="data-label">Receiving Entity (CBWTF Authorized Inspector)</div>
+        <div class="data-value">{% if receipt.reception_manifest.facility %}{{ receipt.reception_manifest.facility.name }}{% else %}Authorized Treatment Plant{% endif %}</div>
+        <div class="text-muted small mt-1">
+          <i class="bi bi-shield-check text-success"></i> Gate Manifest Reception Verified
+        </div>
+        <div class="text-muted" style="font-size: 0.68rem; margin-top: 0.5rem;">
+          Sign-off: {% if receipt.reception_manifest.received_at %}{{ receipt.reception_manifest.received_at|date:"d M Y, H:i:s" }}{% else %}{{ generated_at|date:"d M Y, H:i:s" }}{% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Certificate Footer -->
+  <div class="mt-4 pt-3 border-top d-flex justify-content-between align-items-center text-muted" style="font-size: 0.72rem;">
+    <div>MedWaste Connect &bull; End-to-End Biomedical Waste Chain of Custody System</div>
+    <div>Verification URI: {{ public_track_url }}</div>
+  </div>
+</div>
+
+</body>
+</html>

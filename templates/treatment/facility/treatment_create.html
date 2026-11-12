@@ -1,0 +1,136 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}Configure Treatment Run — {{ facility.name }} — {{ SITE_NAME }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="container-fluid py-2" style="max-width: 1000px;">
+  <!-- Header -->
+  <div class="mb-4">
+    <a href="{% url 'treatment:treatment_batch_list' %}" class="btn btn-sm btn-outline-secondary rounded-pill mb-2">
+      <i class="bi bi-arrow-left me-1"></i> Back to Treatment Runs
+    </a>
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <span class="badge rounded-pill text-white" style="background-color: var(--teal-deep);">
+        Treatment Dispatch
+      </span>
+      <span class="badge bg-light text-muted border font-monospace">
+        {{ facility.facility_code }}
+      </span>
+    </div>
+    <h1 class="h3 fw-bold mb-0 text-dark">
+      Configure New Treatment Processing Batch
+    </h1>
+    <p class="text-muted small mb-0">
+      Select verified, accepted bags from reception quarantine and configure treatment parameters.
+    </p>
+  </div>
+
+  <!-- Messages Feedback -->
+  {% if messages %}
+    <div class="mb-4">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show rounded-3 shadow-sm" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <!-- Treatment Batch Form Card -->
+  <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white mb-4">
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger rounded-3 mb-4">
+          {% for err in form.non_field_errors %}
+            <div><i class="bi bi-exclamation-triangle-fill me-1"></i> {{ err }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <!-- Step 1: Technology & Unit -->
+      <h5 class="fw-bold pb-2 border-bottom mb-3" style="color: var(--teal-deep);">
+        <i class="bi bi-sliders me-2"></i> 1. Prescribed Treatment Method &amp; Equipment Unit
+      </h5>
+      <div class="row g-3 mb-4">
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold text-muted">Treatment Technology <span class="text-danger">*</span></label>
+          {{ form.treatment_method }}
+          <div class="form-text small">Only technologies licensed and configured for this facility are listed.</div>
+          {% if form.treatment_method.errors %}
+            <div class="text-danger small mt-1">{{ form.treatment_method.errors.0 }}</div>
+          {% endif %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold text-muted">Equipment / Chamber Reference</label>
+          {{ form.equipment_reference }}
+          {% if form.equipment_reference.errors %}
+            <div class="text-danger small mt-1">{{ form.equipment_reference.errors.0 }}</div>
+          {% endif %}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small fw-semibold text-muted">Target Chamber Temp (°C)</label>
+          {{ form.chamber_temperature_celsius }}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small fw-semibold text-muted">Steam Pressure (PSI / Bar)</label>
+          {{ form.chamber_pressure_psi }}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small fw-semibold text-muted">Cycle Duration (Minutes)</label>
+          {{ form.cycle_duration_minutes }}
+        </div>
+      </div>
+
+      <!-- Step 2: Select Bags -->
+      <h5 class="fw-bold pb-2 border-bottom mb-3" style="color: var(--teal-deep);">
+        <i class="bi bi-check2-square me-2"></i> 2. Select Accepted Bags for Treatment ({{ eligible_bags_count }} Eligible)
+      </h5>
+
+      {% if form.bags.errors %}
+        <div class="alert alert-danger rounded-3 mb-3">{{ form.bags.errors.0 }}</div>
+      {% endif %}
+
+      {% if eligible_bags_count > 0 %}
+        <div class="p-3 bg-light rounded-3 mb-4 border" style="max-height: 350px; overflow-y: auto;">
+          <div class="row g-2">
+            {% for choice in form.bags %}
+              <div class="col-md-6">
+                <div class="p-2 bg-white rounded-2 border d-flex align-items-center gap-2">
+                  {{ choice.tag }}
+                  <label class="form-check-label small mb-0 flex-grow-1" for="{{ choice.id_for_label }}">
+                    {{ choice.choice_label }}
+                  </label>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% else %}
+        <div class="alert alert-warning rounded-3 mb-4">
+          <i class="bi bi-exclamation-circle me-1"></i> No accepted waste bags currently awaiting treatment. Verify and accept incoming consignments first.
+        </div>
+      {% endif %}
+
+      <!-- Step 3: Remarks -->
+      <div class="mb-4">
+        <label class="form-label small fw-semibold text-muted">Operational Remarks &amp; Cycle Notes</label>
+        {{ form.treatment_remarks }}
+      </div>
+
+      <!-- Submit Buttons -->
+      <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+        <a href="{% url 'treatment:treatment_batch_list' %}" class="btn btn-outline-secondary rounded-pill px-4">
+          Cancel
+        </a>
+        <button type="submit" class="btn text-white rounded-pill px-4 fw-semibold" style="background-color: #005B50;" {% if eligible_bags_count == 0 %}disabled{% endif %}>
+          <i class="bi bi-check-circle me-1"></i> Create Treatment Batch
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+

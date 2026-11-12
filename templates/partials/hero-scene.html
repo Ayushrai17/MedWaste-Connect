@@ -1,0 +1,89 @@
+{% load static %}
+<!-- =========================================================================
+     Cinematic Hero Scene Component (Stage 3 Animated Assembly)
+     5-Layer 2.5D Perspective Composition with Physical Building Occlusion:
+       Layer 1: Hospital (Background)
+       Layer 2: Driveway (Ground Plane)
+       Layer 1B: Hospital Wing Occlusion (Masks initial emergence from behind building)
+       Layer 3: Waste Bins (Yellow, Red, White, Blue Collection Bay)
+       Layer 4: Vehicle Shadow (Dynamic Scaling Contact Shadow)
+       Layer 5: Collection Van (Foreground Left-Facing Vehicle, 44% Width)
+     ========================================================================= -->
+<div class="hero-scene-wrapper" aria-label="Cinematic 3D architectural visualization of biomedical waste collection at hospital entrance">
+  <!-- Replay Button -->
+  <button type="button" class="hero-replay-btn" id="btnReplayHero" title="Replay Cinematic Entrance Animation" aria-label="Replay Cinematic Entrance Animation">
+    <i class="bi bi-arrow-counterclockwise"></i> <span>Replay</span>
+  </button>
+
+  <div class="hero-scene-stage" id="heroSceneStage">
+    <!-- LAYER 1 — HOSPITAL (Stationary Background) -->
+    <div class="hero-layer hero-layer-hospital" data-layer="hospital">
+      <img src="{% static 'img/hero/hospital.png' %}"
+           alt="Modern healthcare campus building with emergency entrance, glass windows, and orange medical cross"
+           class="hero-img-hospital"
+           width="1672"
+           height="941"
+           loading="eager">
+    </div>
+
+    <!-- LAYER 2 — DRIVEWAY (Ground Plane) -->
+    <div class="hero-layer hero-layer-driveway" data-layer="driveway">
+      <img src="{% static 'img/hero/driveway.png' %}"
+           alt="Curved tiled hospital entrance driveway"
+           class="hero-img-driveway"
+           width="2172"
+           height="724"
+           loading="eager">
+    </div>
+
+    <!-- LAYER 1B — HOSPITAL RIGHT WING OCCLUSION (Physical Depth Layer) -->
+    <div class="hero-layer hero-layer-wing" data-layer="wing" aria-hidden="true">
+      <img src="{% static 'img/hero/hospital-wing.png' %}"
+           alt=""
+           class="hero-img-wing"
+           width="1672"
+           height="941"
+           loading="eager">
+    </div>
+
+    <!-- LAYER 4 — VEHICLE SHADOW (Ground Contact Shadow) -->
+    <div class="hero-layer hero-layer-shadow" data-layer="shadow">
+      <img src="{% static 'img/hero/ground-shadow.png' %}"
+           alt=""
+           aria-hidden="true"
+           class="hero-img-shadow"
+           width="2172"
+           height="724"
+           loading="eager">
+    </div>
+
+    <!-- LAYER 5 — COLLECTION VAN (Emerges from Courtyard, Travels Behind Bins) -->
+    <div class="hero-layer hero-layer-van" data-layer="van">
+      <img src="{% static 'img/hero/collection-van.png' %}"
+           alt="MedWaste Connect biomedical collection van parked at hospital collection bay"
+           class="hero-img-van"
+           width="1594"
+           height="986"
+           loading="eager">
+    </div>
+
+    <!-- LAYER 3 — WASTE BINS (Foremost Depth Layer — Van Travels Behind Bins) -->
+    <div class="hero-layer hero-layer-bins" data-layer="bins">
+      <img src="{% static 'img/hero/waste-bins.png' %}"
+           alt="Four segregated biomedical waste bins: Yellow, Red, White, Blue"
+           class="hero-img-bins"
+           width="1945"
+           height="809"
+           loading="eager">
+    </div>
+
+    <!-- Safe No-JS Fallback: resets van and shadow to static parked composition -->
+    <noscript>
+      <style>
+        .hero-layer-van { transform: none !important; z-index: 35 !important; }
+        .hero-layer-shadow { transform: none !important; z-index: 28 !important; opacity: 0.85 !important; }
+        .hero-layer-bins { z-index: 60 !important; }
+      </style>
+    </noscript>
+  </div>
+</div>

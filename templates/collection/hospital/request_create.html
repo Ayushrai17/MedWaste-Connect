@@ -1,0 +1,313 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}New Collection Request — MedWaste Connect{% endblock %}
+
+{% block dashboard_content %}
+<div class="container-fluid py-3 px-md-4">
+
+  <!-- Breadcrumbs & Header -->
+  <div class="mb-4">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-1 small">
+        <li class="breadcrumb-item"><a href="{% url 'collection:hospital_request_list' %}" class="text-decoration-none" style="color: #005B50;">Pickup Requests</a></li>
+        <li class="breadcrumb-item active" aria-current="page">New Request</li>
+      </ol>
+    </nav>
+    <h1 class="h3 fw-bold mb-1" style="color: #071F1D;">Create Waste Collection Request</h1>
+    <p class="text-muted small mb-0">
+      Select uncollected biomedical waste bags from your hospital inventory and schedule an authorized transport pickup.
+    </p>
+  </div>
+
+  <!-- Messages Feedback -->
+  {% if messages %}
+    <div class="mb-4">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show rounded-3 shadow-sm" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if form.errors %}
+    <div class="alert alert-danger rounded-3 shadow-sm mb-4">
+      <h6 class="fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill me-1"></i> Please correct the following errors:</h6>
+      <ul class="mb-0 small ps-3">
+        {% for field, errors in form.errors.items %}
+          {% for error in errors %}
+            <li><strong>{{ field|title }}:</strong> {{ error }}</li>
+          {% endfor %}
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  <form method="post" action="{% url 'collection:hospital_request_create' %}" id="collectionRequestForm">
+    {% csrf_token %}
+
+    <div class="row g-4">
+      <!-- Left Column: Bag Selection Inventory -->
+      <div class="col-lg-7">
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4">
+          <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3">
+            <div>
+              <h2 class="h5 fw-bold mb-0" style="color: #071F1D;">1. Select Waste Bags for Collection</h2>
+              <div class="text-muted small">Only uncollected bags with registered custody status are eligible.</div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" id="selectAllBagsBtn">
+                Select All
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" id="deselectAllBagsBtn">
+                Deselect
+              </button>
+            </div>
+          </div>
+
+          {% if eligible_bags %}
+            <!-- Live Bag Selection Summary Banner -->
+            <div class="p-3 rounded-3 mb-3 d-flex justify-content-between align-items-center" style="background-color: #EEF1EF; border-left: 4px solid #005B50;">
+              <div>
+                <span class="fw-bold text-dark small">Selected for Pickup:</span>
+                <span class="badge bg-success ms-1 px-2 py-1" id="selectedCountBadge">0</span> bags
+              </div>
+              <div>
+                <span class="text-muted small">Aggregate Weight:</span>
+                <strong class="fw-bold fs-6" style="color: #F36B21;" id="selectedWeightText">0.00 KG</strong>
+              </div>
+            </div>
+
+            <!-- Batch Groupings Accordion / Container -->
+            <div class="table-responsive" style="max-height: 480px; overflow-y: auto;">
+              <table class="table table-hover align-middle mb-0" id="bagsSelectionTable">
+                <thead class="sticky-top" style="background-color: #F7F7F5; font-size: 0.78rem; text-transform: uppercase;">
+                  <tr>
+                    <th style="width: 40px;" class="ps-3 text-center">
+                      <input type="checkbox" class="form-check-input" id="masterTableCheck" title="Select all visible bags">
+                    </th>
+                    <th>Bag Tracking ID</th>
+                    <th>Category</th>
+                    <th>Weight</th>
+                    <th>Origin (Ward/Dept)</th>
+                    <th>Batch</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for bag in eligible_bags %}
+                    <tr class="bag-row" data-weight="{{ bag.weight }}" data-bag-id="{{ bag.id }}">
+                      <td class="ps-3 text-center">
+                        <input type="checkbox"
+                               name="bags"
+                               value="{{ bag.id }}"
+                               class="form-check-input bag-checkbox"
+                               id="bag_check_{{ bag.id }}"
+                               {% if bag.id|stringformat:"s" in form.bags.value or bag in form.bags.value %}checked{% endif %}>
+                      </td>
+                      <td>
+                        <label for="bag_check_{{ bag.id }}" class="font-monospace fw-bold small text-dark mb-0 d-block cursor-pointer">
+                          {{ bag.bag_id }}
+                        </label>
+                        <span class="text-muted" style="font-size: 0.7rem;">{{ bag.registered_at|date:"d M, H:i" }}</span>
+                      </td>
+                      <td>
+                        <span class="badge" style="background-color: {{ bag.category.display_color }}; color: #071F1D; font-size: 0.7rem; border: 1px solid rgba(0,0,0,0.12);">
+                          {{ bag.category.code }}
+                        </span>
+                      </td>
+                      <td class="fw-bold text-dark small">
+                        {{ bag.weight }} <span class="text-muted fw-normal" style="font-size: 0.7rem;">KG</span>
+                      </td>
+                      <td>
+                        <div class="small fw-semibold text-dark text-truncate" style="max-width: 140px;">{{ bag.ward }}</div>
+                        <div class="text-muted text-truncate" style="font-size: 0.7rem; max-width: 140px;">{{ bag.department }}</div>
+                      </td>
+                      <td>
+                        {% if bag.batch %}
+                          <span class="font-monospace text-muted small" style="font-size: 0.7rem;">{{ bag.batch.batch_number|slice:"-6:" }}</span>
+                        {% else %}
+                          <span class="text-muted small">&mdash;</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="text-center py-5">
+              <div class="rounded-circle d-inline-flex p-3 mb-3" style="background-color: #FEF3C7; color: #D97706; font-size: 1.8rem;">
+                <i class="bi bi-exclamation-circle"></i>
+              </div>
+              <h5 class="fw-bold text-dark">No Eligible Waste Bags Available</h5>
+              <p class="text-muted small mb-3" style="max-width: 380px; margin: 0 auto;">
+                All waste bags registered by your hospital are already assigned to active pickup requests or in transit.
+              </p>
+              <a href="{% url 'waste:register' %}" class="btn text-white rounded-pill px-4 btn-sm" style="background-color: #005B50;">
+                <i class="bi bi-plus-circle me-1"></i> Log New Waste Bags
+              </a>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Right Column: Dispatch Details & Schedule Form -->
+      <div class="col-lg-5">
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4">
+          <h2 class="h5 fw-bold mb-3" style="color: #071F1D;">2. Dispatch &amp; Schedule Details</h2>
+
+          <!-- Preferred Schedule -->
+          <div class="p-3 rounded-3 mb-3" style="background-color: #F7F7F5;">
+            <div class="fw-bold small text-dark mb-2">
+              <i class="bi bi-calendar-event me-1 text-primary"></i> Preferred Pickup Window
+            </div>
+            <div class="row g-2">
+              <div class="col-sm-7">
+                <label for="{{ form.preferred_pickup_date.id_for_label }}" class="form-label text-muted small mb-1 fw-semibold">Pickup Date *</label>
+                {{ form.preferred_pickup_date }}
+              </div>
+              <div class="col-sm-5">
+                <label for="{{ form.preferred_pickup_time.id_for_label }}" class="form-label text-muted small mb-1 fw-semibold">Target Time *</label>
+                {{ form.preferred_pickup_time }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Alternative Schedule (Optional) -->
+          <div class="p-3 rounded-3 mb-3 bg-light">
+            <div class="fw-semibold small text-muted mb-2">
+              <i class="bi bi-calendar-plus me-1"></i> Alternative Window (Optional Backup)
+            </div>
+            <div class="row g-2">
+              <div class="col-sm-7">
+                <label for="{{ form.alternative_pickup_date.id_for_label }}" class="form-label text-muted small mb-1">Alternative Date</label>
+                {{ form.alternative_pickup_date }}
+              </div>
+              <div class="col-sm-5">
+                <label for="{{ form.alternative_pickup_time.id_for_label }}" class="form-label text-muted small mb-1">Alternative Time</label>
+                {{ form.alternative_pickup_time }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Pickup Dock Location -->
+          <div class="mb-3">
+            <label for="{{ form.pickup_address.id_for_label }}" class="form-label text-muted small fw-semibold mb-1">
+              Pickup Dock / Gate Address *
+            </label>
+            {{ form.pickup_address }}
+            <div class="form-text" style="font-size: 0.72rem;">Specific entrance or loading dock where the waste collection vehicle should report.</div>
+          </div>
+
+          <!-- Contact Details -->
+          <div class="row g-2 mb-3">
+            <div class="col-sm-6">
+              <label for="{{ form.contact_person.id_for_label }}" class="form-label text-muted small fw-semibold mb-1">Contact Coordinator *</label>
+              {{ form.contact_person }}
+            </div>
+            <div class="col-sm-6">
+              <label for="{{ form.contact_phone.id_for_label }}" class="form-label text-muted small fw-semibold mb-1">Contact Telephone *</label>
+              {{ form.contact_phone }}
+            </div>
+          </div>
+
+          <!-- Special Instructions -->
+          <div class="mb-3">
+            <label for="{{ form.special_instructions.id_for_label }}" class="form-label text-muted small fw-semibold mb-1">
+              Dock Access / Security Instructions
+            </label>
+            {{ form.special_instructions }}
+          </div>
+
+          <!-- Operational Notes -->
+          <div class="mb-4">
+            <label for="{{ form.operational_notes.id_for_label }}" class="form-label text-muted small fw-semibold mb-1">
+              Internal Hospital Notes
+            </label>
+            {{ form.operational_notes }}
+          </div>
+
+          <!-- Submit Buttons -->
+          <div class="d-grid gap-2">
+            <button type="submit" class="btn text-white rounded-pill py-2 fw-semibold shadow-sm" style="background-color: #005B50;" id="submitRequestBtn" {% if not eligible_bags %}disabled{% endif %}>
+              <i class="bi bi-send-check me-1"></i> Submit Collection Request
+            </button>
+            <a href="{% url 'collection:hospital_request_list' %}" class="btn btn-outline-secondary rounded-pill py-2 btn-sm">
+              Cancel
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+
+</div>
+
+<!-- Client-side Calculation Script -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const checkboxes = document.querySelectorAll(".bag-checkbox");
+  const countBadge = document.getElementById("selectedCountBadge");
+  const weightText = document.getElementById("selectedWeightText");
+  const masterCheck = document.getElementById("masterTableCheck");
+  const selectAllBtn = document.getElementById("selectAllBagsBtn");
+  const deselectAllBtn = document.getElementById("deselectAllBagsBtn");
+
+  function updateTotals() {
+    let count = 0;
+    let totalWeight = 0.0;
+
+    checkboxes.forEach(function (cb) {
+      if (cb.checked) {
+        count += 1;
+        const row = cb.closest(".bag-row");
+        const w = parseFloat(row.getAttribute("data-weight")) || 0.0;
+        totalWeight += w;
+      }
+    });
+
+    if (countBadge) countBadge.textContent = count;
+    if (weightText) weightText.textContent = totalWeight.toFixed(2) + " KG";
+  }
+
+  checkboxes.forEach(function (cb) {
+    cb.addEventListener("change", updateTotals);
+  });
+
+  if (masterCheck) {
+    masterCheck.addEventListener("change", function () {
+      const isChecked = this.checked;
+      checkboxes.forEach(function (cb) {
+        cb.checked = isChecked;
+      });
+      updateTotals();
+    });
+  }
+
+  if (selectAllBtn) {
+    selectAllBtn.addEventListener("click", function () {
+      checkboxes.forEach(function (cb) {
+        cb.checked = true;
+      });
+      if (masterCheck) masterCheck.checked = true;
+      updateTotals();
+    });
+  }
+
+  if (deselectAllBtn) {
+    deselectAllBtn.addEventListener("click", function () {
+      checkboxes.forEach(function (cb) {
+        cb.checked = false;
+      });
+      if (masterCheck) masterCheck.checked = false;
+      updateTotals();
+    });
+  }
+
+  // Initial calculation on load
+  updateTotals();
+});
+</script>
+{% endblock %}
+

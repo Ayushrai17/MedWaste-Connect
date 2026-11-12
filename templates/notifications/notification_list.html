@@ -1,0 +1,116 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}Notifications &amp; System Alerts — MedWaste Connect{% endblock %}
+
+{% block dashboard_content %}
+<div class="container-fluid py-3 px-md-4">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h3 fw-bold mb-1" style="color: #071F1D;">System Notifications</h1>
+      <p class="text-muted small mb-0">Audit notifications, collection status updates, and dispatch alerts.</p>
+    </div>
+
+    <!-- Mark All Read Form -->
+    <form method="post" action="{% url 'notifications:mark_all_read' %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+        <i class="bi bi-check2-all me-1"></i> Mark All as Read
+      </button>
+    </form>
+  </div>
+
+  <!-- Messages Feedback -->
+  {% if messages %}
+    <div class="mb-4">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show rounded-3 shadow-sm" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <!-- Notifications List -->
+  <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white mb-4">
+    <div class="list-group list-group-flush">
+      {% for n in page_obj %}
+        <div class="list-group-item p-3 d-flex justify-content-between align-items-start gap-3 {% if not n.is_read %}bg-light border-start border-4 border-primary{% endif %}">
+          <div class="d-flex align-items-start gap-3">
+            <div class="rounded-circle p-2 d-flex align-items-center justify-content-center text-white flex-shrink-0"
+                 style="width: 36px; height: 36px; background-color: {% if n.notification_type == 'WASTE_COLLECTED' or n.notification_type == 'REQUEST_APPROVED' %}#059669{% elif n.notification_type == 'REQUEST_REJECTED' or n.notification_type == 'COLLECTOR_REJECTED' or n.notification_type == 'REQUEST_CANCELLED' %}#DC2626{% else %}#005B50{% endif %};">
+              <i class="bi {% if n.notification_type == 'WASTE_COLLECTED' %}bi-check-all{% elif n.notification_type == 'COLLECTOR_ASSIGNED' or n.notification_type == 'PICKUP_STARTED' %}bi-truck{% elif n.notification_type == 'REQUEST_SUBMITTED' %}bi-journal-plus{% elif n.notification_type == 'SCHEDULE_CONFIRMED' %}bi-calendar-check{% else %}bi-bell{% endif %}"></i>
+            </div>
+            <div>
+              <div class="d-flex align-items-center gap-2 mb-1">
+                <h6 class="fw-bold mb-0 text-dark">{{ n.title }}</h6>
+                {% if not n.is_read %}
+                  <span class="badge bg-primary-subtle text-primary small" style="font-size: 0.65rem;">New</span>
+                {% endif %}
+              </div>
+              <p class="text-muted small mb-1">{{ n.message }}</p>
+              <div class="text-muted" style="font-size: 0.72rem;">{{ n.created_at|date:"d M Y, H:i:s" }}</div>
+            </div>
+          </div>
+
+          <div class="d-flex align-items-center gap-2">
+            {% if n.link %}
+              <form method="post" action="{% url 'notifications:mark_read' n.id %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1" style="font-size: 0.75rem;">
+                  View Manifest <i class="bi bi-chevron-right ms-1"></i>
+                </button>
+              </form>
+            {% elif not n.is_read %}
+              <form method="post" action="{% url 'notifications:mark_read' n.id %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-light border rounded-pill px-2 py-1" style="font-size: 0.75rem;" title="Mark read">
+                  <i class="bi bi-check2"></i>
+                </button>
+              </form>
+            {% endif %}
+          </div>
+        </div>
+      {% empty %}
+        <div class="text-center py-5">
+          <div class="rounded-circle d-inline-flex p-3 mb-2" style="background-color: #EEF1EF; color: #005B50; font-size: 1.8rem;">
+            <i class="bi bi-bell-slash"></i>
+          </div>
+          <h5 class="fw-bold text-dark">No Notifications</h5>
+          <p class="text-muted small mb-0">You have no notification alerts recorded in your history.</p>
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+      <div class="p-3 border-top d-flex justify-content-between align-items-center bg-light">
+        <div class="text-muted small">
+          Showing <strong>{{ page_obj.start_index }}</strong> to <strong>{{ page_obj.end_index }}</strong> of <strong>{{ page_obj.paginator.count }}</strong> notifications
+        </div>
+        <nav aria-label="Notifications pagination">
+          <ul class="pagination pagination-sm mb-0">
+            {% if page_obj.has_previous %}
+              <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">&laquo;</a></li>
+            {% endif %}
+            {% for num in page_obj.paginator.page_range %}
+              {% if page_obj.number == num %}
+                <li class="page-item active"><span class="page-link" style="background-color: #005B50; border-color: #005B50;">{{ num }}</span></li>
+              {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+              {% endif %}
+            {% endfor %}
+            {% if page_obj.has_next %}
+              <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">&raquo;</a></li>
+            {% endif %}
+          </ul>
+        </nav>
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
+

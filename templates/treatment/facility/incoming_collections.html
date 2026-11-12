@@ -1,0 +1,148 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}Incoming Consignments — {{ facility.name }} — {{ SITE_NAME }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="container-fluid py-2">
+  <!-- Top Navigation Header -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <span class="badge rounded-pill text-white" style="background-color: var(--teal-deep);">
+          <i class="bi bi-box-arrow-in-down me-1"></i> Gate Reception Queue
+        </span>
+        <span class="badge bg-light text-muted border font-monospace">
+          {{ facility.facility_code }}
+        </span>
+      </div>
+      <h1 class="h3 fw-bold mb-0 text-dark">
+        Incoming Collections Queue
+      </h1>
+      <p class="text-muted small mb-0">
+        Dispatches collected from hospital docks and en route for treatment reception.
+      </p>
+    </div>
+
+    <div class="d-flex gap-2">
+      <a href="{% url 'treatment:facility_dashboard' %}" class="btn btn-outline-secondary rounded-pill px-3 btn-sm">
+        <i class="bi bi-speedometer2 me-1"></i> Dashboard
+      </a>
+      <a href="{% url 'treatment:facility_incoming_manifests' %}?tab=receptions" class="btn btn-outline-primary rounded-pill px-3 btn-sm">
+        <i class="bi bi-receipt me-1"></i> Checked-In Receptions
+      </a>
+    </div>
+  </div>
+
+  <!-- Messages Feedback -->
+  {% if messages %}
+    <div class="mb-4">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show rounded-3 shadow-sm" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <!-- Search Filter -->
+  <div class="card border-0 shadow-sm rounded-4 p-3 mb-4 bg-white">
+    <form method="get" class="row g-2 align-items-center">
+      <div class="col-md-6">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+          <input type="text" name="q" value="{{ search_q }}" class="form-control border-start-0" placeholder="Search collection reference, hospital name...">
+        </div>
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-sm btn-outline-secondary w-100 rounded-pill">
+          <i class="bi bi-funnel me-1"></i> Search
+        </button>
+      </div>
+      {% if search_q %}
+        <div class="col-md-2">
+          <a href="{% url 'treatment:facility_incoming_manifests' %}" class="btn btn-sm btn-link text-muted text-decoration-none">
+            Clear
+          </a>
+        </div>
+      {% endif %}
+    </form>
+  </div>
+
+  <!-- Incoming Collections Table -->
+  <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white mb-4">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light text-muted small text-uppercase" style="font-size: 0.72rem;">
+          <tr>
+            <th class="ps-4">Collection Reference</th>
+            <th>Hospital Origin</th>
+            <th>Dispatched Collector</th>
+            <th>Collection Timestamp</th>
+            <th>Expected Bags</th>
+            <th>Expected Weight</th>
+            <th class="text-end pe-4">Gate Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for col in page_obj %}
+            <tr>
+              <td class="ps-4">
+                <span class="fw-bold font-monospace text-dark">{{ col.reference_number }}</span>
+                <div class="small text-muted">
+                  <span class="badge bg-light text-dark border">{{ col.get_status_display }}</span>
+                </div>
+              </td>
+              <td>
+                <div class="fw-bold text-dark">{{ col.hospital.organization_name|default:col.hospital.username }}</div>
+                <div class="small text-muted"><i class="bi bi-geo-alt me-1"></i> {{ col.pickup_address }}</div>
+              </td>
+              <td>
+                <div class="fw-semibold text-dark">{{ col.assigned_collector.get_full_name|default:col.assigned_collector.username }}</div>
+                <div class="small text-muted">{{ col.assigned_collector.phone|default:"Dispatched vehicle" }}</div>
+              </td>
+              <td>
+                <div class="small text-dark">{{ col.actual_collection_time|date:"d M Y, H:i"|default:"In Transit" }}</div>
+              </td>
+              <td>
+                <span class="badge bg-secondary-subtle text-secondary fs-6">{{ col.total_bags }} Bags</span>
+              </td>
+              <td>
+                <span class="fw-bold text-dark">{{ col.total_weight }}</span> <span class="small text-muted">KG</span>
+              </td>
+              <td class="text-end pe-4">
+                <a href="{% url 'treatment:facility_receive_consignment' col.reference_number %}" class="btn btn-sm text-white rounded-pill px-3 fw-semibold" style="background-color: #005B50;">
+                  <i class="bi bi-box-arrow-in-down me-1"></i> Check In Consignment
+                </a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="7" class="text-center py-5 text-muted">
+                <i class="bi bi-truck fs-1 d-block mb-2 text-secondary"></i>
+                No incoming waste consignments waiting at the facility gate.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+      <div class="p-3 border-top d-flex justify-content-between align-items-center">
+        <span class="small text-muted">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        <div class="btn-group btn-group-sm">
+          {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-outline-secondary">Previous</a>
+          {% endif %}
+          {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}" class="btn btn-outline-secondary">Next</a>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+

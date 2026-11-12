@@ -1,0 +1,668 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ SITE_NAME }} — Medical Waste Collection and Segregation System{% endblock %}
+
+{% block extra_css %}
+<!-- Hero Scene 2.5D Component & GSAP Animation CSS -->
+<link rel="stylesheet" href="{% static 'css/hero-animation.css' %}">
+<!-- Leaflet CSS for interactive map -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<style>
+  /* Custom Leaflet popup styling conforming to strict brand color palette */
+  .leaflet-popup-content-wrapper {
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(20, 31, 43, 0.15);
+    border: 1px solid rgba(27, 101, 133, 0.2);
+    font-family: var(--font-body);
+  }
+  .leaflet-popup-tip {
+    background: var(--white);
+  }
+  .custom-map-popup h6 {
+    color: var(--teal-deep);
+    font-weight: 700;
+    margin-bottom: 4px;
+    font-size: 0.95rem;
+  }
+  .custom-map-popup p {
+    color: var(--navy);
+    font-size: 0.82rem;
+    margin-bottom: 0;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- =========================================================================
+     SECTION 1 — HERO (Full-Bleed Cinematic Environment)
+     ========================================================================= -->
+<section class="hero-section hero-fullbleed-section">
+  <!-- Right-Anchored Full-Bleed 2.5D Cinematic Environment (65%–75% Desktop Width) -->
+  <div class="hero-fullbleed-backdrop" id="heroFullbleedBackdrop">
+    {% include 'partials/hero-scene.html' %}
+  </div>
+
+  <!-- Standard Container for Left Headline, Lead & Action Buttons -->
+  <div class="container hero-container position-relative">
+    <div class="row align-items-center">
+      <div class="col-lg-5 col-xl-5 hero-copy-col">
+        <!-- Eyebrow with Decorative Line -->
+        <div class="hero-eyebrow-v4">
+          <span class="hero-eyebrow-line"></span>
+          <span class="hero-eyebrow-text">BIOMEDICAL WASTE MANAGEMENT PLATFORM</span>
+        </div>
+
+        <!-- Main Heading -->
+        <h1 class="hero-title-v4">
+          A Smarter Way to<br>
+          Manage<br>
+          <span class="text-orange-v4">Medical Waste</span>
+        </h1>
+
+        <!-- Description -->
+        <p class="hero-lead-v4">
+          Connect hospitals, waste collectors, and treatment facilities for safe, compliant, and transparent biomedical waste management.
+        </p>
+
+        <!-- CTA Buttons -->
+        <div class="d-flex flex-wrap align-items-center gap-3 pt-2 hero-btn-group-v4">
+          <a href="{% url 'register' %}" class="btn btn-pill btn-cta-primary-v4">
+            <i class="bi bi-truck"></i>
+            <span>Request a Pickup</span>
+            <i class="bi bi-arrow-right ms-1"></i>
+          </a>
+          <a href="#stats" class="btn btn-pill btn-cta-secondary-v4">
+            <i class="bi bi-geo-alt"></i>
+            <span>Track Waste</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =========================================================================
+     HORIZONTAL GLASS-LIKE STATISTICS STRIP (FINAL REFERENCE MATCH)
+     Beneath hero content and cinematic scene
+     ========================================================================= -->
+<section class="hero-stats-strip-section" id="stats" aria-label="Key platform impact metrics">
+  <div class="container">
+    <div class="hero-stats-glass-card">
+      <div class="row g-0 align-items-center">
+        <!-- Stat Item 1: Registered Hospitals -->
+        <div class="col-6 col-lg-3 hero-stat-col">
+          <div class="hero-stat-item">
+            <div class="hero-stat-icon-wrapper">
+              <i class="bi bi-hospital"></i>
+            </div>
+            <div class="hero-stat-info">
+              <div class="hero-stat-value">120+</div>
+              <div class="hero-stat-label">Registered Hospitals</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stat Item 2: Collection Partners -->
+        <div class="col-6 col-lg-3 hero-stat-col">
+          <div class="hero-stat-item">
+            <div class="hero-stat-icon-wrapper">
+              <i class="bi bi-truck"></i>
+            </div>
+            <div class="hero-stat-info">
+              <div class="hero-stat-value">45+</div>
+              <div class="hero-stat-label">Collection Partners</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stat Item 3: Treatment Facilities -->
+        <div class="col-6 col-lg-3 hero-stat-col">
+          <div class="hero-stat-item">
+            <div class="hero-stat-icon-wrapper">
+              <i class="bi bi-building"></i>
+            </div>
+            <div class="hero-stat-info">
+              <div class="hero-stat-value">18+</div>
+              <div class="hero-stat-label">Treatment Facilities</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stat Item 4: Compliance Focused -->
+        <div class="col-6 col-lg-3 hero-stat-col hero-stat-col-last">
+          <div class="hero-stat-item">
+            <div class="hero-stat-icon-wrapper">
+              <i class="bi bi-shield-check"></i>
+            </div>
+            <div class="hero-stat-info">
+              <div class="hero-stat-value">100%</div>
+              <div class="hero-stat-label">Compliance Focused</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =========================================================================
+     SECTION 2 — NETWORK ANALYTICS (ID: stats)
+     Panoramic background with deep teal overlay & glass-style analytics panel
+     ========================================================================= -->
+<section id="stats" class="stats-section">
+  <div class="stats-overlay"></div>
+  <div class="container stats-container">
+    <div class="glass-panel">
+      <!-- Section Header -->
+      <div class="row mb-4 align-items-end">
+        <div class="col-lg-8">
+          <div class="d-inline-flex align-items-center gap-2 mb-2">
+            <span class="badge rounded-pill" style="background-color: var(--teal-deep); color: var(--white); font-weight: 600;">
+              <i class="bi bi-broadcast me-1"></i> Demonstration Network
+            </span>
+          </div>
+          <h2 class="mb-1" style="color: var(--teal-deep);">Today's Analytics</h2>
+          <p class="mb-0 text-muted">Tracking every kilogram from source to safe disposal.</p>
+        </div>
+        <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+          <span class="badge bg-light text-muted border px-3 py-2 rounded-pill small">
+            <i class="bi bi-info-circle me-1 text-primary"></i> Sample Demonstration Metrics
+          </span>
+        </div>
+      </div>
+
+      <!-- 4 KPI Cards -->
+      <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+          <div class="stat-item-box">
+            <div class="stat-number" data-target="{{ stats.waste_collected_kg }}">0</div>
+            <p class="stat-label">Waste Collected (kg)</p>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-item-box">
+            <div class="stat-number" data-target="{{ stats.pickups_completed }}">0</div>
+            <p class="stat-label">Pickups Completed</p>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-item-box">
+            <div class="stat-number" data-target="{{ stats.hospitals_connected }}">0</div>
+            <p class="stat-label">Hospitals Connected</p>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-item-box">
+            <div class="stat-number" data-target="{{ stats.facilities_active }}">0</div>
+            <p class="stat-label">Active Facilities</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Map & Active Routes Row -->
+      <div class="row g-4 align-items-stretch">
+        <div class="col-lg-7">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="fw-bold small text-uppercase" style="color: var(--teal-deep); letter-spacing: 0.05em;">
+              <i class="bi bi-map me-1"></i> Regional Waste Collection Hubs (India)
+            </span>
+            <span class="badge bg-light text-dark border">CartoDB Positron</span>
+          </div>
+          <div id="mini-stats-map" aria-label="Interactive map displaying active hospital waste collection points"></div>
+          <small class="text-muted d-block mt-2" style="font-size: 0.78rem;">
+            <i class="bi bi-geo-alt-fill text-warning me-1"></i> Orange pins represent sample regional hospital collection points.
+          </small>
+        </div>
+
+        <div class="col-lg-5">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="fw-bold small text-uppercase" style="color: var(--teal-deep); letter-spacing: 0.05em;">
+              <i class="bi bi-truck me-1"></i> Active Routes (Sample Records)
+            </span>
+            <span class="text-muted small">Live Manifests</span>
+          </div>
+          <div class="active-routes-wrapper">
+            {% for route in active_routes %}
+              <div class="route-item">
+                <div class="overflow-hidden me-2">
+                  <div class="fw-bold text-truncate" style="color: var(--navy);">
+                    {{ route.hospital }}
+                  </div>
+                  <div class="text-muted small text-truncate">
+                    <i class="bi bi-arrow-right-short text-warning"></i> {{ route.destination }}
+                  </div>
+                </div>
+                <div class="text-end text-nowrap">
+                  <span class="badge" style="background-color: var(--teal-deep); color: var(--white);">
+                    {{ route.status }}
+                  </span>
+                  <div class="text-muted small fw-semibold mt-1">{{ route.weight }}</div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =========================================================================
+     SECTION 3 — HOW IT WORKS (ID: how, Cream Background)
+     Four visually attractive numbered cards
+     ========================================================================= -->
+<section id="how" class="py-5 bg-cream-section">
+  <div class="container py-4">
+    <div class="text-center max-w-700 mx-auto mb-5">
+      <h2 class="mb-2">How Our Platform Works</h2>
+      <p class="lead text-muted mb-0">
+        A seamless 4-step digital chain of custody ensuring strict environmental and health compliance.
+      </p>
+    </div>
+
+    <div class="row g-4">
+      <!-- 01 — SEGREGATE -->
+      <div class="col-md-6 col-lg-3">
+        <div class="step-card step-card-01">
+          <div class="step-num">01</div>
+          <div class="step-icon">
+            <i class="bi bi-palette"></i>
+          </div>
+          <h3 class="step-title">SEGREGATE</h3>
+          <p class="step-desc">Biomedical waste is separated into the appropriate prescribed categories.</p>
+        </div>
+      </div>
+
+      <!-- 02 — COLLECT -->
+      <div class="col-md-6 col-lg-3">
+        <div class="step-card step-card-02">
+          <div class="step-num">02</div>
+          <div class="step-icon">
+            <i class="bi bi-qr-code-scan"></i>
+          </div>
+          <h3 class="step-title">COLLECT</h3>
+          <p class="step-desc">Collection requests are submitted and assigned to authorised collectors.</p>
+        </div>
+      </div>
+
+      <!-- 03 — TRANSPORT -->
+      <div class="col-md-6 col-lg-3">
+        <div class="step-card step-card-03">
+          <div class="step-num">03</div>
+          <div class="step-icon">
+            <i class="bi bi-truck-front"></i>
+          </div>
+          <h3 class="step-title">TRANSPORT</h3>
+          <p class="step-desc">Collection movement and handovers are digitally documented.</p>
+        </div>
+      </div>
+
+      <!-- 04 — TREAT -->
+      <div class="col-md-6 col-lg-3">
+        <div class="step-card step-card-04">
+          <div class="step-num">04</div>
+          <div class="step-icon">
+            <i class="bi bi-shield-fill-check"></i>
+          </div>
+          <h3 class="step-title">TREAT</h3>
+          <p class="step-desc">Treatment and disposal records are maintained for traceability.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =========================================================================
+     SECTION 4 — PLATFORM FEATURES (ID: features, White Background)
+     Six planned platform capabilities
+     ========================================================================= -->
+<section id="features" class="py-5 bg-white-section">
+  <div class="container py-4">
+    <div class="text-center max-w-700 mx-auto mb-5">
+      <div class="d-inline-flex align-items-center gap-2 mb-2">
+        <span class="badge" style="background-color: rgba(27, 101, 133, 0.12); color: var(--teal-deep); font-weight: 700; border-radius: var(--radius-pill); padding: 0.35rem 0.85rem;">
+          SYSTEM CAPABILITIES
+        </span>
+      </div>
+      <h2 class="mb-2">Everything Connected. One Intelligent Platform.</h2>
+      <p class="lead text-muted mb-0">
+        Modular digital tools engineered to eliminate paper manifests, guarantee compliance, and ensure zero unmonitored disposal.
+      </p>
+    </div>
+
+    <div class="row g-4">
+      {% for feature in features %}
+        <div class="col-md-6 col-lg-4">
+          <div class="feature-card">
+            <div class="feature-icon-wrapper">
+              <i class="bi {{ feature.icon }}"></i>
+            </div>
+            <h3 class="h5 fw-bold mb-2" style="color: var(--teal-deep);">{{ feature.title }}</h3>
+            <p class="text-muted small mb-0">
+              {{ feature.description }}
+            </p>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- =========================================================================
+     SECTION 5 — USER ROLES (ID: roles, Cream Background)
+     Four stakeholder cards with role login links (?role=<role>)
+     ========================================================================= -->
+<section id="roles" class="py-5 bg-cream-section">
+  <div class="container py-4">
+    <div class="text-center max-w-700 mx-auto mb-5">
+      <div class="d-inline-flex align-items-center gap-2 mb-2">
+        <span class="badge" style="background-color: rgba(27, 101, 133, 0.12); color: var(--teal-deep); font-weight: 700; border-radius: var(--radius-pill); padding: 0.35rem 0.85rem;">
+          STAKEHOLDER PORTALS
+        </span>
+      </div>
+      <h2 class="mb-2">One Platform. Four Stakeholders.</h2>
+      <p class="lead text-muted mb-0">
+        Dedicated portals engineered for the specific requirements of every healthcare and disposal partner.
+      </p>
+    </div>
+
+    <div class="row g-4">
+      <!-- Role 1: Hospital / Clinic -->
+      <div class="col-md-6 col-lg-3">
+        <div class="role-card">
+          <div>
+            <div class="role-icon-wrapper">
+              <i class="bi bi-hospital"></i>
+            </div>
+            <h3 class="h5 fw-bold mb-2" style="color: var(--teal-deep);">Hospital / Clinic</h3>
+            <p class="text-muted small mb-4">
+              Log segregated bags, generate QR codes, schedule dispatches, and track real-time collection status.
+            </p>
+          </div>
+          <a href="{% url 'login' %}?role=HOSPITAL" class="btn btn-pill btn-orange w-100">
+            Login as Hospital <i class="bi bi-arrow-right ms-1"></i>
+          </a>
+        </div>
+      </div>
+
+      <!-- Role 2: Waste Collector -->
+      <div class="col-md-6 col-lg-3">
+        <div class="role-card">
+          <div>
+            <div class="role-icon-wrapper">
+              <i class="bi bi-truck"></i>
+            </div>
+            <h3 class="h5 fw-bold mb-2" style="color: var(--teal-deep);">Waste Collector</h3>
+            <p class="text-muted small mb-4">
+              Scan QR manifests on pickup, record actual weights, optimize transport routes, and hand off safely.
+            </p>
+          </div>
+          <a href="{% url 'login' %}?role=COLLECTOR" class="btn btn-pill btn-orange w-100">
+            Login as Collector <i class="bi bi-arrow-right ms-1"></i>
+          </a>
+        </div>
+      </div>
+
+      <!-- Role 3: Treatment Facility -->
+      <div class="col-md-6 col-lg-3">
+        <div class="role-card">
+          <div>
+            <div class="role-icon-wrapper">
+              <i class="bi bi-fire"></i>
+            </div>
+            <h3 class="h5 fw-bold mb-2" style="color: var(--teal-deep);">Treatment Facility</h3>
+            <p class="text-muted small mb-4">
+              Verify incoming shipments, execute certified disposal methods, and generate legal compliance certificates.
+            </p>
+          </div>
+          <a href="{% url 'login' %}?role=FACILITY" class="btn btn-pill btn-orange w-100">
+            Login as Facility <i class="bi bi-arrow-right ms-1"></i>
+          </a>
+        </div>
+      </div>
+
+      <!-- Role 4: Administrator -->
+      <div class="col-md-6 col-lg-3">
+        <div class="role-card">
+          <div>
+            <div class="role-icon-wrapper">
+              <i class="bi bi-person-gear"></i>
+            </div>
+            <h3 class="h5 fw-bold mb-2" style="color: var(--teal-deep);">Administrator</h3>
+            <p class="text-muted small mb-4">
+              Comprehensive system oversight, regulatory reporting, facility audits, and user access management.
+            </p>
+          </div>
+          <a href="{% url 'login' %}?role=ADMIN" class="btn btn-pill btn-orange w-100">
+            Login as Admin <i class="bi bi-arrow-right ms-1"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =========================================================================
+     SECTION 6 — WHY CHOOSE OUR PLATFORM (ID: about, White Background)
+     Four benefits in an attractive split layout
+     ========================================================================= -->
+<section id="about" class="py-5 bg-white-section">
+  <div class="container py-4">
+    <div class="row align-items-center g-5">
+      <!-- Left: Narrative & Key Stat Highlight -->
+      <div class="col-lg-5">
+        <div class="d-inline-flex align-items-center gap-2 mb-2">
+          <span class="badge" style="background-color: rgba(27, 101, 133, 0.12); color: var(--teal-deep); font-weight: 700; border-radius: var(--radius-pill); padding: 0.35rem 0.85rem;">
+            WHY MEDWASTE CONNECT
+          </span>
+        </div>
+        <h2 class="mb-3" style="color: var(--teal-deep);">
+          Engineered for Total Regulatory Trust and Environmental Safety.
+        </h2>
+        <p class="text-muted mb-4">
+          Biomedical waste management requires absolute certainty. Our platform eliminates handwritten manifests and unaccounted waste by creating an unbreakable chain of digital accountability from ward nurse to treatment furnace operator.
+        </p>
+
+        <!-- Highlight Card -->
+        <div class="card-custom p-4" style="background-color: var(--cream); border-left: 5px solid var(--orange);">
+          <div class="d-flex align-items-center gap-3">
+            <i class="bi bi-shield-lock-fill fs-2" style="color: var(--teal-deep);"></i>
+            <div>
+              <h4 class="h6 fw-bold mb-1" style="color: var(--teal-deep);">Tamper-Proof Audit Trails</h4>
+              <p class="small text-muted mb-0">Every handover is digitally verified and time-stamped for state pollution control inspections.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Four Benefit Blocks -->
+      <div class="col-lg-7">
+        <div class="row g-4">
+          {% for benefit in benefits %}
+            <div class="col-md-6">
+              <div class="card-custom p-4 h-100" style="background-color: var(--white);">
+                <div class="benefit-item mb-2">
+                  <div class="benefit-icon">
+                    <i class="bi {{ benefit.icon }}"></i>
+                  </div>
+                  <div>
+                    <h3 class="h6 fw-bold mb-1" style="color: var(--teal-deep);">{{ benefit.title }}</h3>
+                  </div>
+                </div>
+                <p class="text-muted small mb-0">
+                  {{ benefit.description }}
+                </p>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =========================================================================
+     SECTION 7 — FINAL CTA (Cream Background)
+     Prominent orange button & call to action
+     ========================================================================= -->
+<section id="contact" class="final-cta-section">
+  <div class="container">
+    <div class="final-cta-box mx-auto" style="max-width: 920px;">
+      <div class="row align-items-center g-4 text-center text-md-start">
+        <div class="col-md-8">
+          <div class="d-inline-flex align-items-center gap-2 mb-2">
+            <span class="badge" style="background-color: var(--teal-light); color: var(--white); font-weight: 600; padding: 0.35rem 0.85rem; border-radius: var(--radius-pill);">
+              <i class="bi bi-shield-check me-1"></i> Immediate Onboarding
+            </span>
+          </div>
+          <h2 class="h2 mb-2" style="color: var(--teal-deep);">
+            Building a Safer and More Responsible Healthcare Environment.
+          </h2>
+          <p class="mb-0 text-muted">
+            Connect your hospital or biomedical treatment plant with {{ SITE_NAME }}. Register today to establish an auditable waste segregation and disposal workflow.
+          </p>
+        </div>
+        <div class="col-md-4 text-center text-md-end">
+          <a href="{% url 'register' %}" class="btn btn-pill btn-orange text-nowrap px-4 py-3">
+            <i class="bi bi-arrow-right-circle me-1"></i> Get Started
+          </a>
+          <div class="mt-2">
+            <small class="text-muted">
+              Already have access? <a href="{% url 'login' %}" class="fw-semibold">Sign in here</a>
+            </small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Leaflet JS CDN -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // ---------------------------------------------------------
+    // 1. STATS COUNT-UP ANIMATION (Vanilla JS with IntersectionObserver)
+    // ---------------------------------------------------------
+    const statElements = document.querySelectorAll('.stat-number');
+    let hasAnimated = false;
+
+    function animateCounters() {
+      statElements.forEach(el => {
+        const target = parseInt(el.getAttribute('data-target'), 10) || 0;
+        const duration = 1600; // ms
+        const startTime = performance.now();
+
+        function updateCount(currentTime) {
+          const elapsed = currentTime - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+          // Ease-out cubic formula
+          const easeOut = 1 - Math.pow(1 - progress, 3);
+          const currentVal = Math.floor(easeOut * target);
+
+          el.textContent = currentVal.toLocaleString();
+
+          if (progress < 1) {
+            requestAnimationFrame(updateCount);
+          } else {
+            el.textContent = target.toLocaleString();
+          }
+        }
+
+        requestAnimationFrame(updateCount);
+      });
+    }
+
+    const statsSection = document.getElementById('stats');
+    if (statsSection && 'IntersectionObserver' in window) {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting && !hasAnimated) {
+            hasAnimated = true;
+            animateCounters();
+            observer.unobserve(statsSection);
+          }
+        });
+      }, { threshold: 0.25 });
+      observer.observe(statsSection);
+    } else {
+      animateCounters();
+    }
+
+    // ---------------------------------------------------------
+    // 2. MINI LEAFLET MAP INITIALIZATION
+    // CartoDB Positron tiles, centred on India [20.5937, 78.9629], zoom 4
+    // ---------------------------------------------------------
+    const mapElement = document.getElementById('mini-stats-map');
+    if (mapElement && typeof L !== 'undefined') {
+      const map = L.map('mini-stats-map', {
+        center: [20.5937, 78.9629],
+        zoom: 4,
+        zoomControl: true,
+        scrollWheelZoom: false,
+        attributionControl: false
+      });
+
+      // CartoDB Positron clean map tiles
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        maxZoom: 18,
+        subdomains: 'abcd'
+      }).addTo(map);
+
+      // 4 Sample Hospital Locations with Orange Markers
+      const sampleMarkers = [
+        {
+          name: "Apex Super-Specialty Hospital, Mumbai",
+          coords: [19.0760, 72.8777],
+          info: "Demonstration: 18 Bags Dispatched • Manifest In Transit"
+        },
+        {
+          name: "Central Memorial Hospital, Delhi",
+          coords: [28.6139, 77.2090],
+          info: "Demonstration: Manifest Verified • Driver En Route"
+        },
+        {
+          name: "Sunrise Healthcare, Bengaluru",
+          coords: [12.9716, 77.5946],
+          info: "Demonstration: Bags Segregated & Tagged • Pickup Scheduled"
+        },
+        {
+          name: "East Coast Medical Hub, Kolkata",
+          coords: [22.5726, 88.3639],
+          info: "Demonstration: Disposal Recorded • Certificate Generated"
+        }
+      ];
+
+      sampleMarkers.forEach(item => {
+        const marker = L.circleMarker(item.coords, {
+          color: '#F26B21',       // Strictly --orange
+          fillColor: '#F26B21',   // Strictly --orange
+          fillOpacity: 0.9,
+          radius: 8,
+          weight: 2
+        }).addTo(map);
+
+        marker.bindPopup(`
+          <div class="custom-map-popup">
+            <h6>${item.name}</h6>
+            <p>${item.info}</p>
+          </div>
+        `);
+      });
+
+      // Invalidate size once visible in case of flex/grid rendering
+      setTimeout(() => { map.invalidateSize(); }, 300);
+    }
+  });
+</script>
+
+<!-- GSAP 3.12 Core & MotionPathPlugin CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/MotionPathPlugin.min.js"></script>
+<!-- MedWaste Connect — Cinematic Hero Animation Script -->
+<script src="{% static 'js/hero-animation.js' %}"></script>
+{% endblock %}

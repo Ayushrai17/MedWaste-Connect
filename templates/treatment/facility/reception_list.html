@@ -1,0 +1,134 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}Reception Manifests — {{ facility.name }} — {{ SITE_NAME }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="container-fluid py-2">
+  <!-- Top Navigation Header -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <span class="badge rounded-pill text-white" style="background-color: var(--teal-deep);">
+          <i class="bi bi-receipt me-1"></i> Reception History
+        </span>
+        <span class="badge bg-light text-muted border font-monospace">
+          {{ facility.facility_code }}
+        </span>
+      </div>
+      <h1 class="h3 fw-bold mb-0 text-dark">
+        Checked-In Reception Manifests
+      </h1>
+      <p class="text-muted small mb-0">
+        Record of consignments inspected, verified, accepted, or flagged with discrepancies.
+      </p>
+    </div>
+
+    <div class="d-flex gap-2">
+      <a href="{% url 'treatment:facility_incoming_manifests' %}" class="btn btn-outline-secondary rounded-pill px-3 btn-sm">
+        <i class="bi bi-truck me-1"></i> Arriving Collections
+      </a>
+      <a href="{% url 'treatment:facility_dashboard' %}" class="btn btn-outline-primary rounded-pill px-3 btn-sm">
+        <i class="bi bi-speedometer2 me-1"></i> Dashboard
+      </a>
+    </div>
+  </div>
+
+  <!-- Receptions Table -->
+  <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white mb-4">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light text-muted small text-uppercase" style="font-size: 0.72rem;">
+          <tr>
+            <th class="ps-4">Reception Manifest</th>
+            <th>Hospital Origin</th>
+            <th>Received At</th>
+            <th>Expected Bags</th>
+            <th>Accepted / Rejected</th>
+            <th>Received Weight</th>
+            <th>Outcome Status</th>
+            <th class="text-end pe-4">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in page_obj %}
+            <tr>
+              <td class="ps-4">
+                <a href="{% url 'treatment:facility_reception_detail' r.reference_number %}" class="fw-bold font-monospace text-decoration-none text-dark">
+                  {{ r.reference_number }}
+                </a>
+                <div class="small text-muted font-monospace">{{ r.collection_request.reference_number }}</div>
+              </td>
+              <td>
+                <div class="fw-bold text-dark">{{ r.collection_request.hospital.organization_name|default:r.collection_request.hospital.username }}</div>
+              </td>
+              <td>
+                <div class="small text-dark">{{ r.received_at|date:"d M Y, H:i" }}</div>
+                <div class="small text-muted">By: {{ r.received_by.username }}</div>
+              </td>
+              <td>
+                <span class="badge bg-light text-dark border">{{ r.expected_bag_count }} Bags</span>
+              </td>
+              <td>
+                <span class="text-success fw-bold">{{ r.accepted_bag_count }} acc.</span> / 
+                <span class="text-danger fw-bold">{{ r.rejected_bag_count }} rej.</span>
+                {% if r.missing_bag_count > 0 %}
+                  / <span class="text-warning-emphasis fw-bold">{{ r.missing_bag_count }} miss.</span>
+                {% endif %}
+              </td>
+              <td>
+                <span class="fw-bold text-dark">{{ r.gross_received_weight }}</span> <span class="small text-muted">KG</span>
+                {% if r.weight_discrepancy != 0 %}
+                  <div class="small {% if r.weight_discrepancy < 0 %}text-danger{% else %}text-warning{% endif %}">
+                    Diff: {{ r.weight_discrepancy }} kg
+                  </div>
+                {% endif %}
+              </td>
+              <td>
+                {% if r.status == 'ACCEPTED' %}
+                  <span class="badge bg-success-subtle text-success border border-success-subtle">Accepted</span>
+                {% elif r.status == 'PARTIALLY_ACCEPTED' %}
+                  <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">Partially Accepted</span>
+                {% elif r.status == 'REJECTED' %}
+                  <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Rejected</span>
+                {% elif r.status == 'DISCREPANCY_REPORTED' %}
+                  <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Discrepancy</span>
+                {% else %}
+                  <span class="badge bg-light text-dark border">Under Inspection</span>
+                {% endif %}
+              </td>
+              <td class="text-end pe-4">
+                <a href="{% url 'treatment:facility_reception_detail' r.reference_number %}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                  <i class="bi bi-search me-1"></i> Details
+                </a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="8" class="text-center py-5 text-muted">
+                <i class="bi bi-receipt fs-1 d-block mb-2 text-secondary"></i>
+                No reception manifests recorded yet.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+      <div class="p-3 border-top d-flex justify-content-between align-items-center">
+        <span class="small text-muted">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        <div class="btn-group btn-group-sm">
+          {% if page_obj.has_previous %}
+            <a href="?tab=receptions&page={{ page_obj.previous_page_number }}" class="btn btn-outline-secondary">Previous</a>
+          {% endif %}
+          {% if page_obj.has_next %}
+            <a href="?tab=receptions&page={{ page_obj.next_page_number }}" class="btn btn-outline-secondary">Next</a>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+

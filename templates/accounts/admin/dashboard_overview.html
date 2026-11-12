@@ -1,0 +1,420 @@
+{% extends "dashboard_base.html" %}
+
+{% block dashboard_content %}
+<div class="container-fluid py-4 px-3 px-md-4">
+  <!-- Directorate Header -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <span class="badge bg-dark text-white px-2 py-1 text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.05em;">
+          <i class="bi bi-shield-lock-fill me-1"></i> Executive Directorate
+        </span>
+        {% if platform_settings.maintenance_mode %}
+          <span class="badge bg-warning text-dark px-2 py-1 text-uppercase">
+            <i class="bi bi-exclamation-triangle-fill me-1"></i> Maintenance Active
+          </span>
+        {% else %}
+          <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 text-uppercase">
+            <i class="bi bi-check-circle-fill me-1"></i> Platform Operational
+          </span>
+        {% endif %}
+      </div>
+      <h2 class="h3 fw-bold mb-0 text-dark">Central Administration Control Panel</h2>
+      <p class="text-muted small mb-0">Platform-wide stakeholder governance, onboarding approvals, operational oversight, and statutory compliance.</p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <a href="{% url 'admin_approvals_queue' %}" class="btn btn-sm btn-outline-dark rounded-pill px-3">
+        <i class="bi bi-check-circle me-1"></i> Approvals Queue
+        {% if kpis.pending_facility_approvals or kpis.pending_hospital_approvals %}
+          <span class="badge bg-danger rounded-pill ms-1">{{ kpis.pending_facility_approvals|add:kpis.pending_hospital_approvals }}</span>
+        {% endif %}
+      </a>
+      <a href="{% url 'admin_operational_oversight' %}" class="btn btn-sm rounded-pill px-3 text-white" style="background-color: var(--teal-deep, #005B50);">
+        <i class="bi bi-sliders me-1"></i> Operational Oversight
+      </a>
+      <a href="{% url 'reports:admin_analytics' %}" class="btn btn-sm rounded-pill px-3 text-white" style="background-color: var(--teal-light, #007A68);">
+        <i class="bi bi-graph-up me-1"></i> Platform Analytics
+      </a>
+    </div>
+  </div>
+
+  <!-- Primary Metric KPI Cards (Section 2) -->
+  <div class="row g-3 mb-4">
+    <!-- Total Registered Users -->
+    <div class="col-6 col-lg-3">
+      <div class="card border-0 shadow-sm rounded-3 h-100 p-3" style="background-color: #FFFFFF;">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="text-muted small fw-semibold text-uppercase">Total Users</span>
+          <div class="rounded-circle p-2 text-white" style="background-color: #071F1D; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">
+            <i class="bi bi-people-fill"></i>
+          </div>
+        </div>
+        <div class="h2 fw-bold text-dark mb-1">{{ kpis.total_users }}</div>
+        <div class="small text-muted d-flex gap-2">
+          <span class="text-success fw-semibold"><i class="bi bi-check-circle"></i> {{ kpis.active_users }} active</span>
+          <span>&bull;</span>
+          <span class="text-secondary">{{ kpis.inactive_users }} inactive</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hospitals & Healthcare Units -->
+    <div class="col-6 col-lg-3">
+      <div class="card border-0 shadow-sm rounded-3 h-100 p-3" style="background-color: #FFFFFF;">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="text-muted small fw-semibold text-uppercase">Hospitals Registered</span>
+          <div class="rounded-circle p-2 text-white" style="background-color: #005B50; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">
+            <i class="bi bi-hospital"></i>
+          </div>
+        </div>
+        <div class="h2 fw-bold text-dark mb-1">{{ kpis.total_hospitals }}</div>
+        <div class="small">
+          {% if kpis.pending_hospital_approvals > 0 %}
+            <span class="text-warning fw-semibold"><i class="bi bi-hourglass-split"></i> {{ kpis.pending_hospital_approvals }} pending review</span>
+          {% else %}
+            <span class="text-success"><i class="bi bi-check2"></i> All verified</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Treatment Facilities -->
+    <div class="col-6 col-lg-3">
+      <div class="card border-0 shadow-sm rounded-3 h-100 p-3" style="background-color: #FFFFFF;">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="text-muted small fw-semibold text-uppercase">Treatment Plants</span>
+          <div class="rounded-circle p-2 text-white" style="background-color: #007A68; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">
+            <i class="bi bi-buildings"></i>
+          </div>
+        </div>
+        <div class="h2 fw-bold text-dark mb-1">{{ kpis.total_facilities }}</div>
+        <div class="small">
+          {% if kpis.pending_facility_approvals > 0 %}
+            <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-circle"></i> {{ kpis.pending_facility_approvals }} pending approval</span>
+          {% else %}
+            <span class="text-muted">Licensed CBWTF network</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Logistics Fleet Collectors -->
+    <div class="col-6 col-lg-3">
+      <div class="card border-0 shadow-sm rounded-3 h-100 p-3" style="background-color: #FFFFFF;">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="text-muted small fw-semibold text-uppercase">Active Collectors</span>
+          <div class="rounded-circle p-2 text-white" style="background-color: #F36B21; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">
+            <i class="bi bi-truck"></i>
+          </div>
+        </div>
+        <div class="h2 fw-bold text-dark mb-1">{{ kpis.total_collectors }}</div>
+        <div class="small text-muted">
+          <span><i class="bi bi-box-seam me-1"></i> {{ kpis.in_transit_bags }} bags in transit</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Operational Alert & Exception Status Bar -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <div class="p-3 rounded-3 border h-100 d-flex align-items-center justify-content-between" style="background-color: #EEF1EF;">
+        <div>
+          <div class="text-muted small fw-semibold text-uppercase">Active Collection Pickups</div>
+          <div class="h4 fw-bold text-dark mb-0">{{ kpis.active_collection_requests }} Active Requests</div>
+        </div>
+        <a href="{% url 'admin_operational_oversight' %}?tab=collection" class="btn btn-sm btn-outline-dark rounded-pill px-3">
+          Manage &rarr;
+        </a>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="p-3 rounded-3 border h-100 d-flex align-items-center justify-content-between" style="background-color: #EEF1EF;">
+        <div>
+          <div class="text-muted small fw-semibold text-uppercase">Critical Discrepancies</div>
+          <div class="h4 fw-bold {% if kpis.open_critical_discrepancies > 0 %}text-danger{% else %}text-success{% endif %} mb-0">
+            {{ kpis.open_critical_discrepancies }} Open Exceptions
+          </div>
+        </div>
+        <a href="{% url 'admin_operational_oversight' %}?tab=custody" class="btn btn-sm btn-outline-danger rounded-pill px-3">
+          Review &rarr;
+        </a>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="p-3 rounded-3 border h-100 d-flex align-items-center justify-content-between" style="background-color: #EEF1EF;">
+        <div>
+          <div class="text-muted small fw-semibold text-uppercase">Suspended Organizations</div>
+          <div class="h4 fw-bold {% if kpis.suspended_organizations > 0 %}text-warning{% else %}text-dark{% endif %} mb-0">
+            {{ kpis.suspended_organizations }} Suspended
+          </div>
+        </div>
+        <a href="{% url 'admin_hospital_list' %}?status=SUSPENDED" class="btn btn-sm btn-outline-dark rounded-pill px-3">
+          Inspect &rarr;
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Grid of Central Workflows -->
+  <div class="row g-4 mb-4">
+    <!-- Left Column: Pending Approvals & Critical Exceptions -->
+    <div class="col-lg-8">
+      <!-- Pending Onboarding Queue -->
+      <div class="card border-0 shadow-sm rounded-3 mb-4">
+        <div class="card-header bg-white py-3 px-4 border-bottom d-flex justify-content-between align-items-center">
+          <h5 class="h6 fw-bold mb-0 text-dark">
+            <i class="bi bi-clock-history text-warning me-2"></i> Onboarding &amp; Facility Approvals Queue
+          </h5>
+          <a href="{% url 'admin_approvals_queue' %}" class="small text-decoration-none fw-semibold" style="color: var(--teal-deep, #005B50);">
+            View Full Queue ({{ kpis.pending_facility_approvals|add:kpis.pending_hospital_approvals }}) &rarr;
+          </a>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light small text-uppercase text-muted">
+              <tr>
+                <th class="ps-4">Applicant / Entity</th>
+                <th>Type</th>
+                <th>SPCB License / Contact</th>
+                <th>Submission</th>
+                <th class="text-end pe-4">Action</th>
+              </tr>
+            </thead>
+            <tbody class="small">
+              {% for fac in pending_facilities %}
+                <tr>
+                  <td class="ps-4">
+                    <div class="fw-semibold text-dark">{{ fac.name }}</div>
+                    <div class="text-muted" style="font-size: 0.75rem;">Code: {{ fac.facility_code }}</div>
+                  </td>
+                  <td><span class="badge bg-info-subtle text-info border">Treatment Plant</span></td>
+                  <td>{{ fac.license_number }}</td>
+                  <td class="text-muted">{{ fac.created_at|date:"d M Y" }}</td>
+                  <td class="text-end pe-4">
+                    <form method="post" action="{% url 'admin_approve_facility' fac.facility_code %}" class="d-inline">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-sm btn-success rounded-pill px-2 py-0" title="Quick Approve">
+                        <i class="bi bi-check2"></i> Approve
+                      </button>
+                    </form>
+                    <a href="{% url 'facilities:admin_facility_detail' fac.facility_code %}" class="btn btn-sm btn-outline-secondary rounded-pill px-2 py-0">
+                      Review
+                    </a>
+                  </td>
+                </tr>
+              {% empty %}
+                {% if not pending_hospitals %}
+                  <tr>
+                    <td colspan="5" class="text-center py-4 text-muted">
+                      <i class="bi bi-check-circle text-success fs-4 d-block mb-1"></i>
+                      All facility and organization onboarding applications are verified.
+                    </td>
+                  </tr>
+                {% endif %}
+              {% endfor %}
+
+              {% for hosp in pending_hospitals %}
+                <tr>
+                  <td class="ps-4">
+                    <div class="fw-semibold text-dark">{{ hosp.organization_name|default:hosp.username }}</div>
+                    <div class="text-muted" style="font-size: 0.75rem;">User: {{ hosp.username }}</div>
+                  </td>
+                  <td><span class="badge bg-primary-subtle text-primary border">Hospital</span></td>
+                  <td>{{ hosp.email|default:hosp.phone }}</td>
+                  <td class="text-muted">{{ hosp.date_joined|date:"d M Y" }}</td>
+                  <td class="text-end pe-4">
+                    <form method="post" action="{% url 'admin_approve_user' hosp.id %}" class="d-inline">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-sm btn-success rounded-pill px-2 py-0">
+                        <i class="bi bi-check2"></i> Approve
+                      </button>
+                    </form>
+                    <a href="{% url 'admin_hospital_detail' hosp.id %}" class="btn btn-sm btn-outline-secondary rounded-pill px-2 py-0">
+                      Review
+                    </a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Recently Registered Hospitals -->
+      <div class="card border-0 shadow-sm rounded-3 mb-4">
+        <div class="card-header bg-white py-3 px-4 border-bottom d-flex justify-content-between align-items-center">
+          <h5 class="h6 fw-bold mb-0 text-dark">
+            <i class="bi bi-hospital text-success me-2"></i> Recently Registered Hospitals
+          </h5>
+          <a href="{% url 'admin_hospital_list' %}" class="small text-decoration-none fw-semibold" style="color: var(--teal-deep, #005B50);">
+            View All Hospitals &rarr;
+          </a>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light small text-uppercase text-muted">
+              <tr>
+                <th class="ps-4">Hospital Organization</th>
+                <th>Account</th>
+                <th>Status</th>
+                <th>Registered</th>
+                <th class="text-end pe-4">Inspect</th>
+              </tr>
+            </thead>
+            <tbody class="small">
+              {% for hosp in recent_hospitals %}
+                <tr>
+                  <td class="ps-4">
+                    <div class="fw-semibold text-dark">{{ hosp.organization_name|default:hosp.username }}</div>
+                    <div class="text-muted" style="font-size: 0.72rem;">{{ hosp.email|default:hosp.phone|default:"No contact email" }}</div>
+                  </td>
+                  <td><span class="fw-semibold">@{{ hosp.username }}</span></td>
+                  <td>
+                    {% if hosp.account_status == 'ACTIVE' and hosp.is_active %}
+                      <span class="badge bg-success-subtle text-success border border-success-subtle">Active</span>
+                    {% elif hosp.account_status == 'PENDING_APPROVAL' %}
+                      <span class="badge bg-warning text-dark">Pending Approval</span>
+                    {% elif hosp.account_status == 'SUSPENDED' %}
+                      <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Suspended</span>
+                    {% else %}
+                      <span class="badge bg-secondary-subtle text-secondary border">{{ hosp.get_account_status_display }}</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-muted">{{ hosp.date_joined|date:"d M Y, H:i" }}</td>
+                  <td class="text-end pe-4">
+                    <a href="{% url 'admin_hospital_detail' hosp.id %}" class="btn btn-sm btn-outline-dark rounded-pill px-3 py-0">
+                      Inspect &rarr;
+                    </a>
+                  </td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="5" class="text-center py-4 text-muted">No hospitals registered yet.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Critical Discrepancies Requiring Review -->
+      <div class="card border-0 shadow-sm rounded-3">
+        <div class="card-header bg-white py-3 px-4 border-bottom d-flex justify-content-between align-items-center">
+          <h5 class="h6 fw-bold mb-0 text-dark">
+            <i class="bi bi-exclamation-triangle-fill text-danger me-2"></i> High &amp; Critical Custody Exceptions
+          </h5>
+          <a href="{% url 'tracking:discrepancy_list' %}" class="small text-decoration-none fw-semibold" style="color: var(--teal-deep, #005B50);">
+            Inspect All Exceptions &rarr;
+          </a>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light small text-uppercase text-muted">
+              <tr>
+                <th class="ps-4">Exception Ref</th>
+                <th>Type</th>
+                <th>Severity</th>
+                <th>Reported</th>
+                <th class="text-end pe-4">Status</th>
+              </tr>
+            </thead>
+            <tbody class="small">
+              {% for disc in critical_discrepancies %}
+                <tr>
+                  <td class="ps-4">
+                    <div class="fw-semibold text-dark">{{ disc.discrepancy_reference }}</div>
+                    {% if disc.bag %}<div class="text-muted" style="font-size: 0.75rem;">Bag: {{ disc.bag.bag_id }}</div>{% endif %}
+                  </td>
+                  <td>{{ disc.get_discrepancy_type_display }}</td>
+                  <td><span class="badge bg-danger">{{ disc.severity }}</span></td>
+                  <td class="text-muted">{{ disc.reported_at|date:"d M, H:i" }}</td>
+                  <td class="text-end pe-4">
+                    <span class="badge bg-warning text-dark">{{ disc.get_status_display }}</span>
+                  </td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="5" class="text-center py-4 text-muted">
+                    <i class="bi bi-shield-check text-success fs-4 d-block mb-1"></i>
+                    Zero unresolved critical custody exceptions detected.
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Administrative Activity & Quick Navigation -->
+    <div class="col-lg-4">
+      <!-- Quick Navigation Grid -->
+      <div class="card border-0 shadow-sm rounded-3 mb-4 p-3" style="background-color: #FFFFFF;">
+        <h6 class="fw-bold text-dark mb-3">Administrative Directory</h6>
+        <div class="row g-2">
+          <div class="col-6">
+            <a href="{% url 'admin_user_list' %}" class="p-3 rounded-3 border d-block text-decoration-none text-center bg-light text-dark h-100 hover-shadow">
+              <i class="bi bi-people fs-4 text-primary d-block mb-1"></i>
+              <span class="small fw-semibold">User Accounts</span>
+            </a>
+          </div>
+          <div class="col-6">
+            <a href="{% url 'admin_hospital_list' %}" class="p-3 rounded-3 border d-block text-decoration-none text-center bg-light text-dark h-100 hover-shadow">
+              <i class="bi bi-hospital fs-4 text-success d-block mb-1"></i>
+              <span class="small fw-semibold">Hospitals</span>
+            </a>
+          </div>
+          <div class="col-6">
+            <a href="{% url 'admin_collector_list' %}" class="p-3 rounded-3 border d-block text-decoration-none text-center bg-light text-dark h-100 hover-shadow">
+              <i class="bi bi-truck fs-4 text-warning d-block mb-1"></i>
+              <span class="small fw-semibold">Collectors</span>
+            </a>
+          </div>
+          <div class="col-6">
+            <a href="{% url 'facilities:admin_facility_list' %}" class="p-3 rounded-3 border d-block text-decoration-none text-center bg-light text-dark h-100 hover-shadow">
+              <i class="bi bi-buildings fs-4 text-info d-block mb-1"></i>
+              <span class="small fw-semibold">Facilities</span>
+            </a>
+          </div>
+          <div class="col-6">
+            <a href="{% url 'admin_platform_config' %}" class="p-3 rounded-3 border d-block text-decoration-none text-center bg-light text-dark h-100 hover-shadow">
+              <i class="bi bi-gear fs-4 text-secondary d-block mb-1"></i>
+              <span class="small fw-semibold">Platform Config</span>
+            </a>
+          </div>
+          <div class="col-6">
+            <a href="{% url 'admin_audit_logs' %}" class="p-3 rounded-3 border d-block text-decoration-none text-center bg-light text-dark h-100 hover-shadow">
+              <i class="bi bi-journal-text fs-4 text-dark d-block mb-1"></i>
+              <span class="small fw-semibold">Audit Logs</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Administrative Audit Trail -->
+      <div class="card border-0 shadow-sm rounded-3">
+        <div class="card-header bg-white py-3 px-3 border-bottom d-flex justify-content-between align-items-center">
+          <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-clock-history me-1"></i> Recent Admin Actions</h6>
+          <a href="{% url 'admin_audit_logs' %}" class="small text-decoration-none text-muted">All Logs &rarr;</a>
+        </div>
+        <div class="list-group list-group-flush small">
+          {% for action in recent_admin_actions %}
+            <div class="list-group-item px-3 py-2 border-bottom">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="badge bg-secondary-subtle text-secondary border" style="font-size: 0.65rem;">{{ action.get_action_type_display }}</span>
+                <span class="text-muted" style="font-size: 0.68rem;">{{ action.timestamp|date:"d M, H:i" }}</span>
+              </div>
+              <div class="fw-semibold text-dark text-truncate">{{ action.affected_record_display|default:action.affected_record_id }}</div>
+              <div class="text-muted text-truncate" style="font-size: 0.72rem;">{{ action.reason }} &bull; by {{ action.actor.username }}</div>
+            </div>
+          {% empty %}
+            <div class="p-4 text-center text-muted small">No administrative actions logged yet.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

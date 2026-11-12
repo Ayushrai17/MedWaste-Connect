@@ -1,0 +1,148 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}Batch Registration Confirmed — {{ SITE_NAME }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="container-fluid py-3 px-md-4">
+
+  <!-- Breadcrumb -->
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb mb-0" style="font-size: 0.85rem;">
+      <li class="breadcrumb-item"><a href="{% url 'dashboard_redirect' %}" class="text-decoration-none text-muted">Dashboard</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'waste:inventory' %}" class="text-decoration-none text-muted">Waste Inventory</a></li>
+      <li class="breadcrumb-item active fw-semibold" style="color: var(--teal-deep);" aria-current="page">Batch {{ batch.batch_number }}</li>
+    </ol>
+  </nav>
+
+  <!-- Success Hero Banner -->
+  <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 text-white" style="background: linear-gradient(135deg, #005B50 0%, #007A68 100%);">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+      <div class="d-flex align-items-center gap-3">
+        <div class="rounded-circle d-flex align-items-center justify-content-center bg-white text-success shadow" style="width: 56px; height: 56px; font-size: 1.8rem;">
+          <i class="bi bi-check-lg" style="color: #005B50;"></i>
+        </div>
+        <div>
+          <span class="badge bg-white-50 text-white text-uppercase mb-1" style="font-size: 0.72rem; letter-spacing: 0.05em;">
+            Atomic Registration Confirmed
+          </span>
+          <h1 class="h3 fw-bold mb-1">Batch Successfully Logged</h1>
+          <p class="mb-0 text-white-50 small">
+            Batch ID: <strong class="text-white font-monospace">{{ batch.batch_number }}</strong> &bull; {{ batch.created_at|date:"d M Y, h:i A" }}
+          </p>
+        </div>
+      </div>
+
+      <div class="d-flex flex-wrap gap-2">
+        <a href="{% url 'waste:batch_labels' batch.batch_number %}" target="_blank" class="btn btn-warning rounded-pill px-3 shadow-sm fw-bold text-dark">
+          <i class="bi bi-printer-fill me-1"></i> Print All Labels ({{ batch.bag_count }})
+        </a>
+        <a href="{% url 'waste:register' %}" class="btn btn-light rounded-pill px-3 shadow-sm fw-semibold" style="color: #005B50;">
+          <i class="bi bi-plus-circle me-1"></i> Log Another Batch
+        </a>
+        <a href="{% url 'waste:inventory' %}" class="btn btn-outline-light rounded-pill px-3">
+          <i class="bi bi-list-task me-1"></i> View Inventory
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Batch Summary Metrics Grid -->
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-md-3">
+      <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100">
+        <div class="text-muted small text-uppercase fw-semibold" style="font-size: 0.72rem;">Total Bags</div>
+        <div class="h3 fw-bold mb-0" style="color: #071F1D;">{{ batch.bag_count }}</div>
+        <div class="text-muted small mt-1">Independent bag records</div>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-md-3">
+      <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100">
+        <div class="text-muted small text-uppercase fw-semibold" style="font-size: 0.72rem;">Aggregate Weight</div>
+        <div class="h3 fw-bold mb-0" style="color: #F36B21;">{{ batch.total_weight }} <span class="fs-6 text-muted">KG</span></div>
+        <div class="text-muted small mt-1">Verified net weight</div>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-md-3">
+      <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100">
+        <div class="text-muted small text-uppercase fw-semibold" style="font-size: 0.72rem;">Ward / Unit</div>
+        <div class="h5 fw-bold mb-0 text-truncate" style="color: #005B50;" title="{{ batch.ward }}">{{ batch.ward }}</div>
+        <div class="text-muted small mt-1">{{ batch.department }}</div>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-md-3">
+      <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100">
+        <div class="text-muted small text-uppercase fw-semibold" style="font-size: 0.72rem;">Hospital Facility</div>
+        <div class="h6 fw-bold mb-0 text-truncate" style="color: #071F1D;" title="{{ batch.hospital.organization_name }}">{{ batch.hospital.organization_name|default:batch.hospital.username }}</div>
+        <div class="text-muted small mt-1">Staff: {{ batch.registered_by.get_full_name|default:batch.registered_by.username }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Individual Bags Table -->
+  <div class="card border-0 shadow-sm rounded-4 p-4 mb-4" style="background-color: #FFFFFF;">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div>
+        <h2 class="h5 fw-bold mb-1" style="color: #071F1D;">Registered Waste Bags</h2>
+        <p class="text-muted small mb-0">Every bag has an independent ID, encrypted QR code, and UUID token.</p>
+      </div>
+      <a href="{% url 'waste:batch_labels' batch.batch_number %}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+        <i class="bi bi-printer me-1"></i> Print All Labels
+      </a>
+    </div>
+
+    <div class="table-responsive rounded-3 border">
+      <table class="table table-hover align-middle mb-0">
+        <thead style="background-color: #EEF1EF; color: #071F1D; font-size: 0.82rem;">
+          <tr>
+            <th>Bag Tracking ID</th>
+            <th>Category</th>
+            <th>Weight</th>
+            <th>Container Type</th>
+            <th>QR Status</th>
+            <th class="text-end pe-3">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for bag in bags %}
+            <tr>
+              <td>
+                <a href="{% url 'waste:bag_detail' bag.bag_id %}" class="font-monospace fw-bold text-decoration-none" style="color: #005B50;">
+                  {{ bag.bag_id }}
+                </a>
+              </td>
+              <td>
+                <span class="badge text-uppercase px-2 py-1" style="background-color: {{ bag.category.display_color }}; color: {% if bag.category.code == 'YELLOW' or bag.category.code == 'WHITE' %}#071F1D{% else %}#FFFFFF{% endif %}; font-weight: 700; font-size: 0.75rem; border: 1px solid rgba(0,0,0,0.1);">
+                  {{ bag.category.name }} ({{ bag.category.code }})
+                </span>
+              </td>
+              <td class="fw-bold text-dark">
+                {{ bag.weight }} <span class="text-muted small">KG</span>
+              </td>
+              <td class="small text-muted">
+                {{ bag.category.container_type }}
+              </td>
+              <td>
+                <span class="badge {% if bag.qr_status == 'READY' %}bg-success-subtle text-success{% elif bag.qr_status == 'FAILED' %}bg-danger-subtle text-danger{% else %}bg-warning-subtle text-warning{% endif %} fw-semibold">
+                  <i class="bi bi-qr-code me-1"></i> {{ bag.get_qr_status_display }}
+                </span>
+              </td>
+              <td class="text-end pe-3">
+                <a href="{% url 'waste:bag_label' bag.bag_id %}" target="_blank" class="btn btn-sm btn-outline-secondary rounded-pill px-2 py-1 me-1" title="Print 100x75mm Label">
+                  <i class="bi bi-printer"></i> Label
+                </a>
+                <a href="{% url 'waste:bag_detail' bag.bag_id %}" class="btn btn-sm btn-outline-secondary rounded-pill px-2 py-1">
+                  <i class="bi bi-eye"></i> Details
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

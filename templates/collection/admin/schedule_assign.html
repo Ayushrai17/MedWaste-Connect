@@ -1,0 +1,197 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}Schedule Pickup &amp; Assign Collector — {{ collection_req.reference_number }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="container-fluid py-3 px-md-4">
+
+  <!-- Breadcrumb -->
+  <div class="mb-4">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-1 small">
+        <li class="breadcrumb-item"><a href="{% url 'collection:admin_dashboard' %}" class="text-decoration-none" style="color: #005B50;">Collection Operations</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'collection:admin_request_detail' collection_req.reference_number %}" class="text-decoration-none" style="color: #005B50;">{{ collection_req.reference_number }}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Schedule &amp; Assign</li>
+      </ol>
+    </nav>
+    <h1 class="h3 fw-bold mb-1" style="color: #071F1D;">Confirm Schedule &amp; Assign Collector</h1>
+    <p class="text-muted small mb-0">
+      Review hospital preferred times, allocate an available collector driver, and confirm dispatch timing.
+    </p>
+  </div>
+
+  <!-- Messages Feedback -->
+  {% if messages %}
+    <div class="mb-4">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show rounded-3 shadow-sm" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if form.errors %}
+    <div class="alert alert-danger rounded-3 shadow-sm mb-4">
+      <h6 class="fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill me-1"></i> Scheduling Error:</h6>
+      <ul class="mb-0 small ps-3">
+        {% for field, errors in form.errors.items %}
+          {% for error in errors %}
+            <li><strong>{{ field|title }}:</strong> {{ error }}</li>
+          {% endfor %}
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  <div class="row g-4">
+    <!-- Left Column: Request Summary Overview -->
+    <div class="col-lg-5">
+      <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <span class="badge text-uppercase px-2 py-1" style="background-color: #EEF1EF; color: #005B50; font-size: 0.72rem; font-weight: 700;">
+            <i class="bi bi-hospital me-1"></i> Origin Facility
+          </span>
+          <span class="font-monospace fw-bold small text-muted">{{ collection_req.reference_number }}</span>
+        </div>
+
+        <h2 class="h5 fw-bold text-dark mb-1">
+          {{ collection_req.hospital.organization_name|default:collection_req.hospital.username }}
+        </h2>
+        <div class="text-muted small mb-3">
+          <i class="bi bi-geo-alt-fill text-danger me-1"></i> {{ collection_req.pickup_address }}
+        </div>
+
+        <!-- Consignment Metrics -->
+        <div class="row g-2 p-3 rounded-3 mb-3" style="background-color: #F7F7F5;">
+          <div class="col-6">
+            <span class="text-muted small text-uppercase fw-semibold" style="font-size: 0.68rem;">Total Bags</span>
+            <div class="h4 fw-bold mb-0 text-dark">{{ collection_req.total_bags }}</div>
+          </div>
+          <div class="col-6">
+            <span class="text-muted small text-uppercase fw-semibold" style="font-size: 0.68rem;">Net Weight</span>
+            <div class="h4 fw-bold mb-0" style="color: #F36B21;">{{ collection_req.total_weight }} <span class="fs-6 text-muted">KG</span></div>
+          </div>
+        </div>
+
+        <!-- Preferred Schedule by Hospital -->
+        <div class="p-3 rounded-3 mb-3 border">
+          <div class="fw-bold small text-dark mb-2">
+            <i class="bi bi-clock-history me-1 text-primary"></i> Hospital Preferred Schedule
+          </div>
+          <div class="d-flex justify-content-between small text-muted mb-1">
+            <span>Primary Date:</span>
+            <strong class="text-dark">{{ collection_req.preferred_pickup_date|date:"D, d M Y" }}</strong>
+          </div>
+          <div class="d-flex justify-content-between small text-muted mb-2">
+            <span>Primary Time:</span>
+            <strong class="text-dark">{{ collection_req.preferred_pickup_time|time:"H:i" }}</strong>
+          </div>
+          {% if collection_req.alternative_pickup_date %}
+            <div class="pt-2 border-top">
+              <div class="d-flex justify-content-between small text-muted mb-1">
+                <span>Backup Date:</span>
+                <span class="text-dark">{{ collection_req.alternative_pickup_date|date:"d M Y" }}</span>
+              </div>
+              <div class="d-flex justify-content-between small text-muted">
+                <span>Backup Time:</span>
+                <span class="text-dark">{{ collection_req.alternative_pickup_time|time:"H:i" }}</span>
+              </div>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Contact Coordinator -->
+        <div class="small text-muted">
+          <div><i class="bi bi-person me-1"></i> Contact: <strong class="text-dark">{{ collection_req.contact_person }}</strong></div>
+          <div><i class="bi bi-telephone me-1"></i> Phone: <strong class="text-dark">{{ collection_req.contact_phone }}</strong></div>
+          {% if collection_req.special_instructions %}
+            <div class="mt-2 pt-2 border-top">
+              <span class="fw-semibold text-dark">Dock Instructions:</span>
+              <p class="mb-0 text-muted fst-italic">{{ collection_req.special_instructions }}</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Scheduling & Collector Allocation Form -->
+    <div class="col-lg-7">
+      <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4">
+        <h2 class="h5 fw-bold mb-3" style="color: #071F1D;">Confirm Dispatch &amp; Driver Allocation</h2>
+
+        <form method="post" action="">
+          {% csrf_token %}
+
+          <!-- Confirmed Pickup Date and Time -->
+          <div class="p-3 rounded-3 mb-3" style="background-color: #EEF1EF; border-left: 4px solid #005B50;">
+            <div class="fw-bold small text-dark mb-2">
+              <i class="bi bi-calendar-check me-1" style="color: #005B50;"></i> Confirmed Pickup Schedule
+            </div>
+            <div class="row g-2">
+              <div class="col-sm-7">
+                <label for="{{ form.confirmed_pickup_date.id_for_label }}" class="form-label text-muted small fw-semibold mb-1">
+                  Confirmed Date *
+                </label>
+                {{ form.confirmed_pickup_date }}
+              </div>
+              <div class="col-sm-5">
+                <label for="{{ form.confirmed_pickup_time.id_for_label }}" class="form-label text-muted small fw-semibold mb-1">
+                  Confirmed Time *
+                </label>
+                {{ form.confirmed_pickup_time }}
+              </div>
+            </div>
+            <div class="form-text" style="font-size: 0.72rem;">
+              Hospital's preferred date was pre-loaded. You may confirm it or adjust for optimal fleet routing.
+            </div>
+          </div>
+
+          <!-- Collector Driver Selection -->
+          <div class="mb-3">
+            <label for="{{ form.assigned_collector.id_for_label }}" class="form-label text-muted small fw-semibold mb-1">
+              Select Authorized Collector Driver *
+            </label>
+            {{ form.assigned_collector }}
+            <div class="form-text" style="font-size: 0.72rem;">
+              <i class="bi bi-shield-check text-success me-1"></i> System automatically verifies driver schedule and blocks overlapping appointments within 45 minutes.
+            </div>
+          </div>
+
+          <!-- Destination Treatment Facility Selection -->
+          <div class="mb-3">
+            <label for="{{ form.destination_facility.id_for_label }}" class="form-label text-muted small fw-semibold mb-1">
+              Designate Destination Treatment Facility (CBWTF)
+            </label>
+            {{ form.destination_facility }}
+            <div class="form-text" style="font-size: 0.72rem;">
+              <i class="bi bi-buildings text-primary me-1"></i> Assign destination plant for gate reception, capacity check, and treatment.
+            </div>
+          </div>
+
+          <!-- Dispatch / Admin Notes -->
+          <div class="mb-4">
+            <label for="{{ form.admin_notes.id_for_label }}" class="form-label text-muted small fw-semibold mb-1">
+              Dispatch Instructions / Operational Notes
+            </label>
+            {{ form.admin_notes }}
+          </div>
+
+          <!-- Submit Buttons -->
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn text-white rounded-pill px-4 fw-semibold shadow-sm" style="background-color: #005B50;">
+              <i class="bi bi-check-circle me-1"></i> Confirm Schedule &amp; Assign Collector
+            </button>
+            <a href="{% url 'collection:admin_request_detail' collection_req.reference_number %}" class="btn btn-outline-secondary rounded-pill px-3">
+              Cancel
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+

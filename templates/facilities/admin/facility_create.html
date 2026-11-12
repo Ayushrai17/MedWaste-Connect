@@ -1,0 +1,224 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}Register Treatment Facility — {{ SITE_NAME }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="container-fluid py-2" style="max-width: 1000px;">
+  <!-- Header Navigation -->
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+      <a href="{% url 'facilities:admin_facility_list' %}" class="btn btn-sm btn-outline-secondary rounded-pill mb-2">
+        <i class="bi bi-arrow-left me-1"></i> Back to Facilities Directory
+      </a>
+      <h1 class="h3 fw-bold mb-1" style="color: var(--teal-deep);">
+        <i class="bi bi-building-add me-2"></i> Register New Treatment Facility
+      </h1>
+      <p class="text-muted small mb-0">
+        Onboard a licensed Common Bio-medical Waste Treatment Facility (CBWTF) into the central tracking system.
+      </p>
+    </div>
+  </div>
+
+  <!-- Messages -->
+  {% if messages %}
+    <div class="mb-4">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show rounded-3 shadow-sm" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <!-- Registration Form Card -->
+  <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white mb-4">
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger rounded-3 mb-4">
+          {% for error in form.non_field_errors %}
+            <div><i class="bi bi-exclamation-triangle-fill me-1"></i> {{ error }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <!-- Section 1: Basic Identity & Operator -->
+      <h5 class="fw-bold pb-2 border-bottom mb-3" style="color: var(--teal-deep);">
+        <i class="bi bi-info-circle me-2"></i> 1. Legal Entity &amp; Facility Operator
+      </h5>
+      <div class="row g-3 mb-4">
+        <div class="col-md-8">
+          <label class="form-label small fw-semibold text-muted">Registered Facility Name <span class="text-danger">*</span></label>
+          {{ form.name }}
+          {% if form.name.errors %}<div class="text-danger small mt-1">{{ form.name.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small fw-semibold text-muted">Facility Classification <span class="text-danger">*</span></label>
+          {{ form.facility_type }}
+          {% if form.facility_type.errors %}<div class="text-danger small mt-1">{{ form.facility_type.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold text-muted">Designated Operator Account (FACILITY Role) <span class="text-danger">*</span></label>
+          {{ form.operator_user }}
+          <div class="form-text small">Select the authenticated user responsible for plant operation.</div>
+          {% if form.operator_user.errors %}<div class="text-danger small mt-1">{{ form.operator_user.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold text-muted">SPCB Consent Authorization / License No. <span class="text-danger">*</span></label>
+          {{ form.license_number }}
+          {% if form.license_number.errors %}<div class="text-danger small mt-1">{{ form.license_number.errors.0 }}</div>{% endif %}
+        </div>
+      </div>
+
+      <!-- Section 2: Physical Location & Contact -->
+      <h5 class="fw-bold pb-2 border-bottom mb-3" style="color: var(--teal-deep);">
+        <i class="bi bi-geo-alt me-2"></i> 2. Location &amp; Contact Details
+      </h5>
+      <div class="row g-3 mb-4">
+        <div class="col-12">
+          <label class="form-label small fw-semibold text-muted">Plant Physical Address <span class="text-danger">*</span></label>
+          {{ form.address }}
+          {% if form.address.errors %}<div class="text-danger small mt-1">{{ form.address.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small fw-semibold text-muted">District / City <span class="text-danger">*</span></label>
+          {{ form.district }}
+          {% if form.district.errors %}<div class="text-danger small mt-1">{{ form.district.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small fw-semibold text-muted">State / Province <span class="text-danger">*</span></label>
+          {{ form.state }}
+          {% if form.state.errors %}<div class="text-danger small mt-1">{{ form.state.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small fw-semibold text-muted">Postal PIN Code <span class="text-danger">*</span></label>
+          {{ form.postal_code }}
+          {% if form.postal_code.errors %}<div class="text-danger small mt-1">{{ form.postal_code.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small fw-semibold text-muted">Authorized Contact Person <span class="text-danger">*</span></label>
+          {{ form.contact_person }}
+          {% if form.contact_person.errors %}<div class="text-danger small mt-1">{{ form.contact_person.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small fw-semibold text-muted">Telephone Contact <span class="text-danger">*</span></label>
+          {{ form.contact_phone }}
+          {% if form.contact_phone.errors %}<div class="text-danger small mt-1">{{ form.contact_phone.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small fw-semibold text-muted">Official Statutory Email <span class="text-danger">*</span></label>
+          {{ form.contact_email }}
+          {% if form.contact_email.errors %}<div class="text-danger small mt-1">{{ form.contact_email.errors.0 }}</div>{% endif %}
+        </div>
+      </div>
+
+      <!-- Section 3: Treatment Capabilities & Daily Capacity -->
+      <h5 class="fw-bold pb-2 border-bottom mb-3" style="color: var(--teal-deep);">
+        <i class="bi bi-fire me-2"></i> 3. Capacity &amp; Authorized Technologies
+      </h5>
+      <div class="row g-3 mb-4">
+        <div class="col-md-4">
+          <label class="form-label small fw-semibold text-muted">Authorized Daily Capacity (KG/Day) <span class="text-danger">*</span></label>
+          {{ form.daily_capacity_kg }}
+          <div class="form-text small">Statutory processing limit per 24-hour cycle.</div>
+          {% if form.daily_capacity_kg.errors %}<div class="text-danger small mt-1">{{ form.daily_capacity_kg.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small fw-semibold text-muted">Operating Working Days</label>
+          {{ form.operating_days }}
+          {% if form.operating_days.errors %}<div class="text-danger small mt-1">{{ form.operating_days.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small fw-semibold text-muted">Daily Operating Shift Hours</label>
+          {{ form.operating_hours }}
+          {% if form.operating_hours.errors %}<div class="text-danger small mt-1">{{ form.operating_hours.errors.0 }}</div>{% endif %}
+        </div>
+
+        <div class="col-12 mt-3">
+          <label class="form-label small fw-semibold text-muted d-block">Configured Treatment Technologies</label>
+          <div class="d-flex flex-wrap gap-4 p-3 bg-light rounded-3">
+            <div class="form-check">
+              {{ form.supports_incineration }}
+              <label class="form-check-label fw-semibold" for="{{ form.supports_incineration.id_for_label }}">
+                <i class="bi bi-fire text-danger me-1"></i> Dual-Chamber Incineration (>1050°C)
+              </label>
+            </div>
+            <div class="form-check">
+              {{ form.supports_autoclaving }}
+              <label class="form-check-label fw-semibold" for="{{ form.supports_autoclaving.id_for_label }}">
+                <i class="bi bi-water text-primary me-1"></i> Steam Autoclaving
+              </label>
+            </div>
+            <div class="form-check">
+              {{ form.supports_shredding }}
+              <label class="form-check-label fw-semibold" for="{{ form.supports_shredding.id_for_label }}">
+                <i class="bi bi-gear-wide-connected text-secondary me-1"></i> Shredding
+              </label>
+            </div>
+            <div class="form-check">
+              {{ form.supports_chemical_disinfection }}
+              <label class="form-check-label fw-semibold" for="{{ form.supports_chemical_disinfection.id_for_label }}">
+                <i class="bi bi-droplet-half text-info me-1"></i> Chemical Disinfection
+              </label>
+            </div>
+            <div class="form-check">
+              {{ form.supports_encapsulation }}
+              <label class="form-check-label fw-semibold" for="{{ form.supports_encapsulation.id_for_label }}">
+                <i class="bi bi-box text-dark me-1"></i> Encapsulation / Deep Burial
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 mt-3">
+          <label class="form-label small fw-semibold text-muted d-block">Authorized Waste Categories</label>
+          <div class="p-3 bg-light rounded-3">
+            {{ form.accepted_categories }}
+          </div>
+          {% if form.accepted_categories.errors %}<div class="text-danger small mt-1">{{ form.accepted_categories.errors.0 }}</div>{% endif %}
+        </div>
+      </div>
+
+      <!-- Section 4: Administrative Status -->
+      <h5 class="fw-bold pb-2 border-bottom mb-3" style="color: var(--teal-deep);">
+        <i class="bi bi-sliders me-2"></i> 4. Administrative Status &amp; Approval
+      </h5>
+      <div class="row g-3 mb-4">
+        <div class="col-md-4">
+          <label class="form-label small fw-semibold text-muted">Approval Status</label>
+          {{ form.approval_status }}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small fw-semibold text-muted">Initial Operational Availability</label>
+          {{ form.operational_availability }}
+        </div>
+        <div class="col-md-4 d-flex align-items-center">
+          <div class="form-check mt-3">
+            {{ form.is_active }}
+            <label class="form-check-label fw-semibold" for="{{ form.is_active.id_for_label }}">
+              Active in System
+            </label>
+          </div>
+        </div>
+        <div class="col-12">
+          <label class="form-label small fw-semibold text-muted">Administrative Notes / Inspection Remarks</label>
+          {{ form.admin_notes }}
+        </div>
+      </div>
+
+      <!-- Submit Buttons -->
+      <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+        <a href="{% url 'facilities:admin_facility_list' %}" class="btn btn-outline-secondary rounded-pill px-4">
+          Cancel
+        </a>
+        <button type="submit" class="btn text-white rounded-pill px-4 fw-semibold" style="background-color: #005B50;">
+          <i class="bi bi-check-circle me-1"></i> Register Facility
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+

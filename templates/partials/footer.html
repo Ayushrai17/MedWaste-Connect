@@ -1,0 +1,51 @@
+<footer class="app-footer">
+  <div class="container">
+    <div class="row g-4 justify-content-between">
+      <div class="col-lg-5 col-md-6">
+        <a href="{% url 'home' %}" class="footer-brand text-decoration-none">
+          <i class="bi bi-shield-shaded" aria-hidden="true"></i>
+          <span>{{ SITE_NAME }}</span>
+        </a>
+        <p class="text-white-50 mt-2">
+          An integrated, compliant biomedical waste management and custody tracking platform ensuring safe segregation, digital auditing, and verified treatment from healthcare source to safe destruction.
+        </p>
+        <div class="d-flex flex-wrap gap-2 mt-3">
+          <span class="badge footer-pill-badge px-3 py-2 rounded-pill">
+            <i class="bi bi-mortarboard me-1"></i> College Project — Medical Waste Management
+          </span>
+          <span class="badge footer-pill-badge px-3 py-2 rounded-pill">
+            <i class="bi bi-shield-check me-1"></i> CPCB Compliant Architecture
+          </span>
+        </div>
+      </div>
+      <div class="col-lg-3 col-md-3">
+        <h5 class="text-white mb-3">Platform Navigation</h5>
+        <ul class="list-unstyled footer-links mb-0">
+          <li><a href="{% url 'home' %}"><i class="bi bi-chevron-right me-1 small"></i> Home</a></li>
+          <li><a href="{% url 'home' %}#stats"><i class="bi bi-chevron-right me-1 small"></i> Today's Analytics</a></li>
+          <li><a href="{% url 'home' %}#how"><i class="bi bi-chevron-right me-1 small"></i> How It Works</a></li>
+          <li><a href="{% url 'home' %}#features"><i class="bi bi-chevron-right me-1 small"></i> Platform Features</a></li>
+          <li><a href="{% url 'home' %}#roles"><i class="bi bi-chevron-right me-1 small"></i> Stakeholder Roles</a></li>
+          <li><a href="{% url 'home' %}#about"><i class="bi bi-chevron-right me-1 small"></i> Why Choose Us</a></li>
+          <li><a href="{% url 'home' %}#contact"><i class="bi bi-chevron-right me-1 small"></i> Contact & Support</a></li>
+        </ul>
+      </div>
+      <div class="col-lg-4 col-md-3">
+        <h5 class="text-white mb-3">Stakeholder Access</h5>
+        <ul class="list-unstyled footer-links mb-3">
+          <li><a href="{% url 'login' %}?role=HOSPITAL"><i class="bi bi-hospital me-2 text-warning"></i> Hospital / Clinic Portal</a></li>
+          <li><a href="{% url 'login' %}?role=COLLECTOR"><i class="bi bi-truck me-2 text-warning"></i> Waste Collector Portal</a></li>
+          <li><a href="{% url 'login' %}?role=FACILITY"><i class="bi bi-fire me-2 text-warning"></i> Treatment Facility Portal</a></li>
+          <li><a href="{% url 'login' %}?role=ADMIN"><i class="bi bi-shield-lock me-2 text-warning"></i> Administrator Portal</a></li>
+        </ul>
+        <div class="text-white-50 small">
+          <i class="bi bi-envelope-at me-1 text-info"></i> contact@medwaste.local
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
+      <p class="mb-0">&copy; 2026 {{ SITE_NAME }}. All rights reserved.</p>
+      <p class="mb-0 text-white-50">Engineered with Django, Bootstrap 5 &amp; Leaflet for Bio-Medical Compliance.</p>
+    </div>
+  </div>
+</footer>

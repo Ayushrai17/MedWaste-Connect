@@ -1,0 +1,226 @@
+{% extends "dashboard_base.html" %}
+
+{% block dashboard_content %}
+<div class="container-fluid py-4 px-3 px-md-4">
+  <!-- Header -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <a href="{% url 'dashboard_admin' %}" class="text-decoration-none text-muted small">&larr; Directorate Overview</a>
+      </div>
+      <h2 class="h3 fw-bold mb-0 text-dark">Platform Configuration Center</h2>
+      <p class="text-muted small mb-0">System runtime parameters, operational reminder thresholds, and audit configuration controls.</p>
+    </div>
+  </div>
+
+  <!-- Statutory Clarification Alert -->
+  <div class="alert alert-light border rounded-3 p-3 mb-4 small">
+    <div class="d-flex align-items-start gap-2">
+      <i class="bi bi-info-circle-fill text-primary fs-5 mt-1"></i>
+      <div>
+        <div class="fw-bold text-dark">Statutory Guidelines vs. Operational Reminder Thresholds</div>
+        <div class="text-muted">
+          Operational thresholds configured below represent internal platform reminders and escalation timers (e.g. 48h staging alerts, 24h critical exception escalation).
+          Statutory CPCB/SPCB deadlines and biohazard category classifications remain fixed according to Biomedical Waste Management Rules and cannot be arbitrarily modified.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4 mb-4">
+    <!-- Configuration Forms Column -->
+    <div class="col-lg-7">
+      <!-- Card 1: Platform Runtime Controls -->
+      <div class="card border-0 shadow-sm rounded-3 p-4 mb-4" style="background-color: #FFFFFF;">
+        <h5 class="h6 fw-bold text-dark border-bottom pb-2 mb-3">
+          <i class="bi bi-sliders text-primary me-2"></i> System Runtime Preferences
+        </h5>
+        <form method="post" action="{% url 'admin_platform_config' %}">
+          {% csrf_token %}
+          <input type="hidden" name="config_type" value="platform_settings">
+
+          {% if settings_form.errors %}
+            <div class="alert alert-danger py-2 small mb-3">
+              <div class="fw-bold mb-1"><i class="bi bi-exclamation-triangle me-1"></i> Please correct the following errors:</div>
+              <ul class="mb-0 ps-3">
+                {% for field in settings_form %}
+                  {% for error in field.errors %}
+                    <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+                  {% endfor %}
+                {% endfor %}
+                {% for error in settings_form.non_field_errors %}
+                  <li>{{ error }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+          {% endif %}
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Platform Display Name</label>
+            {{ settings_form.platform_name }}
+            {% if settings_form.platform_name.errors %}
+              <div class="text-danger small mt-1">{{ settings_form.platform_name.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Default Records Per Page</label>
+              {{ settings_form.default_page_size }}
+              <div class="form-text" style="font-size: 0.72rem;">Permitted range: 10 to 100 records.</div>
+              {% if settings_form.default_page_size.errors %}
+                <div class="text-danger small mt-1">{{ settings_form.default_page_size.errors.0 }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Stale Pickup Flagging Threshold (Hours)</label>
+              {{ settings_form.stale_collection_hours }}
+              <div class="form-text" style="font-size: 0.72rem;">Hours before flagging an unassigned request.</div>
+              {% if settings_form.stale_collection_hours.errors %}
+                <div class="text-danger small mt-1">{{ settings_form.stale_collection_hours.errors.0 }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <div class="form-check form-switch">
+              {{ settings_form.hospital_requires_approval }}
+              <label class="form-check-label small fw-semibold">Require Administrative Approval for Hospital Self-Registrations</label>
+            </div>
+            <div class="form-text ms-4" style="font-size: 0.72rem;">If enabled, newly registered hospitals remain in Pending status until approved.</div>
+          </div>
+
+          <div class="mb-3">
+            <div class="form-check form-switch">
+              {{ settings_form.auto_escalate_critical_discrepancies }}
+              <label class="form-check-label small fw-semibold">Auto-Escalate Critical Discrepancies to Administration</label>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <div class="form-check form-switch">
+              {{ settings_form.maintenance_mode }}
+              <label class="form-check-label small fw-semibold text-warning">Enable System Maintenance Notice Banner</label>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Maintenance Message</label>
+            {{ settings_form.maintenance_message }}
+          </div>
+
+          <div class="mb-3 p-3 rounded bg-light border">
+            <label class="form-label small fw-bold text-dark">Mandatory Reason for Changes <span class="text-danger">*</span></label>
+            {{ settings_form.change_reason }}
+            <div class="form-text text-muted" style="font-size: 0.7rem;">Every parameter modification is recorded in the immutable administrative action ledger.</div>
+          </div>
+
+          <button type="submit" class="btn btn-sm btn-dark rounded-pill px-4">
+            <i class="bi bi-save me-1"></i> Save Runtime Settings
+          </button>
+        </form>
+      </div>
+
+      <!-- Card 2: Compliance Operational Thresholds -->
+      <div class="card border-0 shadow-sm rounded-3 p-4" style="background-color: #FFFFFF;">
+        <h5 class="h6 fw-bold text-dark border-bottom pb-2 mb-3">
+          <i class="bi bi-shield-check text-success me-2"></i> Compliance Operational Reminder Thresholds
+        </h5>
+        <form method="post" action="{% url 'admin_platform_config' %}">
+          {% csrf_token %}
+          <input type="hidden" name="config_type" value="compliance_thresholds">
+
+          {% if compliance_form.errors %}
+            <div class="alert alert-danger py-2 small mb-3">
+              <div class="fw-bold mb-1"><i class="bi bi-exclamation-triangle me-1"></i> Please correct the following errors:</div>
+              <ul class="mb-0 ps-3">
+                {% for field in compliance_form %}
+                  {% for error in field.errors %}
+                    <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+                  {% endfor %}
+                {% endfor %}
+                {% for error in compliance_form.non_field_errors %}
+                  <li>{{ error }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+          {% endif %}
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Treatment Staging Reminder (Hours)</label>
+              {{ compliance_form.treatment_turnaround_hours }}
+              <div class="form-text" style="font-size: 0.72rem;">Default: 48h (Range: 12 - 168h)</div>
+              {% if compliance_form.treatment_turnaround_hours.errors %}
+                <div class="text-danger small mt-1">{{ compliance_form.treatment_turnaround_hours.errors.0 }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Disposal Documentation Filing Window (Days)</label>
+              {{ compliance_form.disposal_turnaround_days }}
+              <div class="form-text" style="font-size: 0.72rem;">Default: 7 days (Range: 1 - 30d)</div>
+              {% if compliance_form.disposal_turnaround_days.errors %}
+                <div class="text-danger small mt-1">{{ compliance_form.disposal_turnaround_days.errors.0 }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Disposal Verification Window (Days)</label>
+              {{ compliance_form.verification_turnaround_days }}
+              <div class="form-text" style="font-size: 0.72rem;">Default: 3 days (Range: 1 - 14d)</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Discrepancy Escalation Window (Hours)</label>
+              {{ compliance_form.discrepancy_escalation_hours }}
+              <div class="form-text" style="font-size: 0.72rem;">Default: 24h (Range: 6 - 72h)</div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <div class="form-check form-switch">
+              {{ compliance_form.is_active }}
+              <label class="form-check-label small fw-semibold">Automated Compliance Exception Monitoring Active</label>
+            </div>
+          </div>
+
+          <div class="mb-3 p-3 rounded bg-light border">
+            <label class="form-label small fw-bold text-dark">Mandatory Reason for Changes <span class="text-danger">*</span></label>
+            {{ compliance_form.change_reason }}
+          </div>
+
+          <button type="submit" class="btn btn-sm btn-success rounded-pill px-4">
+            <i class="bi bi-save me-1"></i> Update Compliance Thresholds
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Right Column: Audit History of Configuration Modifications -->
+    <div class="col-lg-5">
+      <div class="card border-0 shadow-sm rounded-3 p-3" style="background-color: #FFFFFF;">
+        <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">
+          <i class="bi bi-journal-text me-1"></i> Configuration Audit Trail
+        </h6>
+        <div class="list-group list-group-flush small">
+          {% for a in config_audits %}
+            <div class="list-group-item px-0 py-2 border-bottom">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="badge bg-secondary-subtle text-secondary border" style="font-size: 0.65rem;">{{ a.get_action_type_display }}</span>
+                <span class="text-muted" style="font-size: 0.68rem;">{{ a.timestamp|date:"d M Y, H:i" }}</span>
+              </div>
+              <div class="fw-semibold text-dark">{{ a.affected_record_display }}</div>
+              <div class="text-muted text-truncate" style="font-size: 0.72rem;">Reason: {{ a.reason }}</div>
+              <div class="text-muted" style="font-size: 0.68rem;">Actor: @{{ a.actor.username }} &bull; Ref: {{ a.action_reference }}</div>
+            </div>
+          {% empty %}
+            <div class="py-4 text-center text-muted small">No configuration modifications logged yet.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

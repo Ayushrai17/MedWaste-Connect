@@ -1,0 +1,424 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}{{ title }} — MedWaste Connect{% endblock %}
+
+{% block dashboard_content %}
+<div class="container-fluid py-4 px-md-4">
+  <!-- Header & Actions -->
+  <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3 pb-3 mb-4 border-bottom">
+    <div>
+      <div class="d-flex align-items-center gap-2">
+        <h1 class="h3 fw-bold text-dark mb-0">Statutory Regulatory Reports</h1>
+        <span class="badge rounded-pill" style="background-color: var(--teal-deep); color: white;">CPCB / SPCB Standards</span>
+      </div>
+      <p class="text-muted small mb-0 mt-1">
+        Official regulatory returns, segregation audits, facility records and chain-of-custody manifests.
+      </p>
+    </div>
+
+    <!-- Export & Print Actions -->
+    <div class="d-flex flex-wrap align-items-center gap-2">
+      <a href="{% url 'reports:export_report_csv' %}?report_type={{ report_type }}&preset={{ preset }}&date_from={{ date_from }}&date_to={{ date_to }}" class="btn btn-sm btn-outline-dark shadow-sm">
+        <i class="bi bi-file-earmark-spreadsheet me-1 text-success"></i> Export Safe CSV
+      </a>
+      <a href="{% url 'reports:regulatory_reports' %}?report_type={{ report_type }}&preset={{ preset }}&date_from={{ date_from }}&date_to={{ date_to }}&format=print" target="_blank" class="btn btn-sm btn-dark shadow-sm">
+        <i class="bi bi-printer me-1"></i> Print Statutory View
+      </a>
+    </div>
+  </div>
+
+  <!-- Filter & Report Type Selector Bar -->
+  <div class="card border-0 shadow-sm rounded-3 mb-4">
+    <div class="card-body p-3">
+      <form method="get" class="row g-2 align-items-center">
+        <!-- Report Type Selection -->
+        <div class="col-md-4">
+          <label class="form-label small text-muted fw-semibold mb-1">Select Regulatory Report</label>
+          <select name="report_type" class="form-select form-select-sm" onchange="this.form.submit()">
+            <option value="ANNUAL_FORM_IV" {% if report_type == 'ANNUAL_FORM_IV' %}selected{% endif %}>Form IV: Annual Return (CPCB Summary)</option>
+            <option value="CATEGORY_SUMMARY" {% if report_type == 'CATEGORY_SUMMARY' %}selected{% endif %}>Category Segregation Audit</option>
+            <option value="FACILITY_PERFORMANCE" {% if report_type == 'FACILITY_PERFORMANCE' %}selected{% endif %}>Treatment Plant Performance</option>
+            <option value="DISPATCH_MANIFEST" {% if report_type == 'DISPATCH_MANIFEST' %}selected{% endif %}>Collection Dispatch Manifest</option>
+            <option value="DISCREPANCY_AUDIT" {% if report_type == 'DISCREPANCY_AUDIT' %}selected{% endif %}>Exceptions &amp; Discrepancy Log</option>
+          </select>
+        </div>
+
+        <!-- Period Preset -->
+        <div class="col-md-3">
+          <label class="form-label small text-muted fw-semibold mb-1">Reporting Period</label>
+          <select name="preset" class="form-select form-select-sm" onchange="this.form.submit()">
+            <option value="current_year" {% if preset == 'current_year' %}selected{% endif %}>Current Year</option>
+            <option value="previous_month" {% if preset == 'previous_month' %}selected{% endif %}>Previous Month</option>
+            <option value="current_month" {% if preset == 'current_month' %}selected{% endif %}>Current Month</option>
+            <option value="last_30_days" {% if preset == 'last_30_days' %}selected{% endif %}>Last 30 Days</option>
+            <option value="all_time" {% if preset == 'all_time' %}selected{% endif %}>All Time</option>
+            <option value="custom" {% if preset == 'custom' %}selected{% endif %}>Custom Date Range</option>
+          </select>
+        </div>
+
+        {% if preset == 'custom' %}
+        <div class="col-md-3">
+          <label class="form-label small text-muted fw-semibold mb-1">Date Bounds</label>
+          <div class="d-flex align-items-center gap-1">
+            <input type="date" name="date_from" value="{{ date_from }}" class="form-control form-control-sm" required>
+            <span class="text-muted small">-</span>
+            <input type="date" name="date_to" value="{{ date_to }}" class="form-control form-control-sm" required>
+          </div>
+        </div>
+        {% endif %}
+
+        <div class="col-md-2 mt-auto">
+          <button type="submit" class="btn btn-sm btn-dark w-100">
+            <i class="bi bi-funnel"></i> Apply
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Report Body Preview Container -->
+  <div class="card border-0 shadow-sm rounded-3 mb-4">
+    <!-- Statutory Document Header -->
+    <div class="card-header bg-white border-bottom p-4">
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-start gap-2">
+        <div>
+          <div class="text-uppercase fw-bold text-muted small" style="letter-spacing: 0.05em;">
+            Central Pollution Control Board &bull; Bio-Medical Waste Management Rules
+          </div>
+          <h2 class="h4 fw-bold text-dark mt-1 mb-0">{{ report_data.title }}</h2>
+          <div class="text-muted small mt-1">
+            Period: <strong class="text-dark">{{ report_data.period_start }}</strong> to <strong class="text-dark">{{ report_data.period_end }}</strong>
+          </div>
+        </div>
+        <div class="text-md-end text-muted small">
+          <div>Generated by: <strong class="text-dark">{{ generated_by.username }}</strong></div>
+          <div>Audit Timestamp: <span class="text-dark">{{ generated_at|date:"Y-m-d H:i:s" }} UTC</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-body p-4">
+      <!-- 1. Form IV Layout -->
+      {% if report_type == 'ANNUAL_FORM_IV' %}
+        <!-- Top Metrics Cards -->
+        <div class="row g-3 mb-4">
+          <div class="col-sm-6 col-lg-3">
+            <div class="p-3 rounded-3" style="background-color: var(--soft-bg);">
+              <div class="text-muted small fw-semibold">Total Waste Generated</div>
+              <div class="fs-4 fw-bold text-dark mt-1">{{ report_data.total_generated_weight|floatformat:2 }} <span class="fs-6 text-muted fw-normal">kg</span></div>
+              <div class="small text-muted">{{ report_data.total_generated_bags }} bags logged</div>
+            </div>
+          </div>
+          <div class="col-sm-6 col-lg-3">
+            <div class="p-3 rounded-3" style="background-color: var(--soft-bg);">
+              <div class="text-muted small fw-semibold">Total Waste Treated</div>
+              <div class="fs-4 fw-bold text-dark mt-1">{{ report_data.treated_weight|floatformat:2 }} <span class="fs-6 text-muted fw-normal">kg</span></div>
+              <div class="small text-muted">CPCB validated cycles</div>
+            </div>
+          </div>
+          <div class="col-sm-6 col-lg-3">
+            <div class="p-3 rounded-3" style="background-color: var(--soft-bg);">
+              <div class="text-muted small fw-semibold">Disposed Residues</div>
+              <div class="fs-4 fw-bold text-dark mt-1">{{ report_data.total_residue_weight|floatformat:2 }} <span class="fs-6 text-muted fw-normal">kg</span></div>
+              <div class="small text-muted">Secured Landfill / Ash</div>
+            </div>
+          </div>
+          <div class="col-sm-6 col-lg-3">
+            <div class="p-3 rounded-3" style="background-color: var(--soft-bg);">
+              <div class="text-muted small fw-semibold">Critical Incidents</div>
+              <div class="fs-4 fw-bold text-dark mt-1">{{ report_data.critical_incidents }}</div>
+              <div class="small text-muted">Accidents / spills logged</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Category Table -->
+        <div class="mb-4">
+          <div class="fw-bold text-dark mb-2">1. Category-Wise Bio-Medical Waste Generation (Rule 13 / Form IV)</div>
+          <div class="table-responsive border rounded-3">
+            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+              <thead class="table-light">
+                <tr>
+                  <th class="ps-3">Category Code</th>
+                  <th>Mandated Color</th>
+                  <th>Mandated Treatment &amp; Disposal Methods</th>
+                  <th class="text-center">Total Bags</th>
+                  <th class="text-end">Weight (kg)</th>
+                  <th class="text-end pe-3">Share (%)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in report_data.category_summary %}
+                <tr>
+                  <td class="ps-3 fw-bold text-dark">{{ row.code }}</td>
+                  <td>
+                    <span class="badge border text-dark" style="background-color: {{ row.color_code }}33;">
+                      {{ row.name }}
+                    </span>
+                  </td>
+                  <td class="small text-muted">{{ row.treatment_methods|default:"Standard CPCB Treatment" }}</td>
+                  <td class="text-center"><span class="badge bg-light text-dark border">{{ row.bags_count }}</span></td>
+                  <td class="text-end fw-bold">{{ row.weight_kg|floatformat:2 }} kg</td>
+                  <td class="text-end pe-3">{{ row.percentage }}%</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Treatment Method Table -->
+        <div class="mb-4">
+          <div class="fw-bold text-dark mb-2">2. Treatment Methods &amp; Operating Parameters Employed</div>
+          <div class="table-responsive border rounded-3">
+            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+              <thead class="table-light">
+                <tr>
+                  <th class="ps-3">Equipment / Method</th>
+                  <th class="text-center">Batches Run</th>
+                  <th class="text-end pe-3">Processed Weight (kg)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for tm in report_data.treatment_by_method %}
+                <tr>
+                  <td class="ps-3 fw-semibold text-dark">{{ tm.method }}</td>
+                  <td class="text-center"><span class="badge bg-light text-dark border">{{ tm.batches_count }}</span></td>
+                  <td class="text-end pe-3 fw-bold">{{ tm.weight_kg|floatformat:2 }} kg</td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="3" class="text-center py-3 text-muted">No treatment cycles recorded in this period.</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      <!-- 2. Category Segregation Audit Layout -->
+      {% elif report_type == 'CATEGORY_SUMMARY' %}
+        <div class="table-responsive border rounded-3 mb-4">
+          <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-3">Category</th>
+                <th>Name</th>
+                <th class="text-center">Total Bags</th>
+                <th class="text-end">Weight (kg)</th>
+                <th class="text-end">Share</th>
+                <th class="text-center">Registered</th>
+                <th class="text-center">In Transit</th>
+                <th class="text-center">Received</th>
+                <th class="text-center">Treated</th>
+                <th class="text-center pe-3">Disposed</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in report_data.rows %}
+              <tr>
+                <td class="ps-3 fw-bold text-dark">{{ r.category_code }}</td>
+                <td>
+                  <span class="badge border text-dark" style="background-color: {{ r.color_code }}33;">
+                    {{ r.category_name }}
+                  </span>
+                </td>
+                <td class="text-center"><span class="badge bg-light text-dark border">{{ r.bags_count }}</span></td>
+                <td class="text-end fw-bold">{{ r.weight_kg|floatformat:2 }} kg</td>
+                <td class="text-end">{{ r.percentage }}%</td>
+                <td class="text-center small">{{ r.status_counts.registered }}</td>
+                <td class="text-center small">{{ r.status_counts.in_transit }}</td>
+                <td class="text-center small">{{ r.status_counts.received }}</td>
+                <td class="text-center small">{{ r.status_counts.treated }}</td>
+                <td class="text-center pe-3 small">{{ r.status_counts.disposed }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+      <!-- 3. Facility Performance Layout -->
+      {% elif report_type == 'FACILITY_PERFORMANCE' %}
+        <div class="table-responsive border rounded-3 mb-4">
+          <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-3">Treatment Plant</th>
+                <th>SPCB License / CTO</th>
+                <th class="text-end">Daily Cap</th>
+                <th class="text-end">Period Intake</th>
+                <th class="text-center">Accepted</th>
+                <th class="text-center">Rejected</th>
+                <th class="text-center">Batches Run</th>
+                <th class="text-end">Treated Weight</th>
+                <th class="text-end pe-3">Utilization</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for f in report_data.facilities %}
+              <tr>
+                <td class="ps-3 fw-semibold text-dark">{{ f.facility.name }}</td>
+                <td><code>{{ f.facility.license_number }}</code></td>
+                <td class="text-end">{{ f.daily_capacity|floatformat:2 }} kg</td>
+                <td class="text-end fw-bold">{{ f.received_weight|floatformat:2 }} kg</td>
+                <td class="text-center"><span class="badge bg-success-subtle text-success">{{ f.accepted_bags }}</span></td>
+                <td class="text-center"><span class="badge bg-danger-subtle text-danger">{{ f.rejected_bags }}</span></td>
+                <td class="text-center">{{ f.completed_batches }}</td>
+                <td class="text-end fw-bold">{{ f.treated_weight|floatformat:2 }} kg</td>
+                <td class="text-end pe-3 fw-bold">{{ f.utilization_pct }}%</td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="9" class="text-center py-4 text-muted">No facility records found for selection.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+      <!-- 4. Dispatch Manifest Transit Log -->
+      {% elif report_type == 'DISPATCH_MANIFEST' %}
+        <div class="table-responsive border rounded-3 mb-4">
+          <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-3">Manifest / Ref</th>
+                <th>Hospital Generator</th>
+                <th>Transporter / Vehicle</th>
+                <th>Status</th>
+                <th class="text-center">Verified Bags</th>
+                <th class="text-end">Weight (kg)</th>
+                <th>Treatment Facility</th>
+                <th class="text-center pe-3">Handover Disputed</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for itm in report_data.items %}
+              <tr>
+                <td class="ps-3 fw-bold text-dark">{{ itm.tracking_number }}</td>
+                <td>{{ itm.hospital_name }}</td>
+                <td>{{ itm.collector_name }} ({{ itm.vehicle_number }})</td>
+                <td><span class="badge bg-light text-dark border">{{ itm.status }}</span></td>
+                <td class="text-center">{{ itm.verified_bags }} / {{ itm.total_bags }}</td>
+                <td class="text-end fw-bold">{{ itm.total_weight|floatformat:2 }} kg</td>
+                <td>{{ itm.facility_name }}</td>
+                <td class="text-center pe-3">
+                  {% if itm.has_dispute %}
+                    <span class="badge bg-danger">YES</span>
+                  {% else %}
+                    <span class="badge bg-success-subtle text-success">NO</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="8" class="text-center py-4 text-muted">No consignment manifests in this period.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+      <!-- 5. Discrepancy & Exception Log -->
+      {% elif report_type == 'DISCREPANCY_AUDIT' %}
+        <div class="table-responsive border rounded-3 mb-4">
+          <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-3">ID</th>
+                <th>Bag Barcode</th>
+                <th>Discrepancy Type</th>
+                <th class="text-center">Severity</th>
+                <th>Status</th>
+                <th>Variance</th>
+                <th>Reported By</th>
+                <th class="pe-3">Resolution Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for itm in report_data.items %}
+              <tr>
+                <td class="ps-3 fw-bold text-dark">#{{ itm.discrepancy_id }}</td>
+                <td><code>{{ itm.bag_barcode }}</code></td>
+                <td>{{ itm.discrepancy_type }}</td>
+                <td class="text-center">
+                  {% if itm.severity == 'CRITICAL' %}
+                    <span class="badge bg-danger">CRITICAL</span>
+                  {% elif itm.severity == 'HIGH' %}
+                    <span class="badge bg-warning text-dark">HIGH</span>
+                  {% else %}
+                    <span class="badge bg-info text-dark">MEDIUM</span>
+                  {% endif %}
+                </td>
+                <td><span class="badge bg-light text-dark border">{{ itm.status }}</span></td>
+                <td>{{ itm.weight_variance|default:"0.00"|floatformat:2 }} kg</td>
+                <td class="small">{{ itm.reported_by }}</td>
+                <td class="pe-3 small text-muted">{{ itm.resolution_notes|truncatechars:40 }}</td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="8" class="text-center py-4 text-muted">No exceptions recorded in this period.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+
+      <!-- Statutory Data Gap Notice Footer -->
+      <div class="alert alert-light border rounded-3 p-3 mt-4 mb-0" style="background-color: #FAFBFB;">
+        <div class="d-flex align-items-start gap-2 small">
+          <i class="bi bi-info-circle-fill text-muted mt-1"></i>
+          <div>
+            <strong>Legal Notice:</strong> This summary is generated from immutable system transaction logs
+            in accordance with the Bio-Medical Waste Management Rules, 2016. SPCB operating authorization numbers
+            are verified at facility onboarding; exact license expiration dates are not presently recorded in the database schema.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Audit Export Logs Ledger -->
+  <div class="card border-0 shadow-sm rounded-3">
+    <div class="card-header bg-white border-bottom py-3">
+      <div class="fw-bold text-dark">
+        <i class="bi bi-clock-history text-teal me-2" style="color: var(--teal-deep);"></i> Statutory Report Generation Ledger (Audit Trail)
+      </div>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" style="font-size: 0.8rem;">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">Report Classification</th>
+              <th>Period Range</th>
+              <th>Generated By</th>
+              <th>Format</th>
+              <th>Records</th>
+              <th class="pe-3 text-end">Generated At</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for log in recent_logs %}
+            <tr>
+              <td class="ps-3 fw-semibold text-dark">{{ log.get_report_type_display }}</td>
+              <td>{{ log.reporting_period_start }} to {{ log.reporting_period_end }}</td>
+              <td>{{ log.generated_by.username }}</td>
+              <td><span class="badge bg-light text-dark border">{{ log.get_export_format_display }}</span></td>
+              <td>{{ log.records_count }}</td>
+              <td class="pe-3 text-end text-muted">{{ log.generated_at|date:"Y-m-d H:i" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="6" class="text-center py-3 text-muted">No report generation logs recorded yet.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

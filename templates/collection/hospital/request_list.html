@@ -1,0 +1,300 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}Biomedical Waste Pickup Requests — MedWaste Connect{% endblock %}
+
+{% block dashboard_content %}
+<div class="container-fluid py-3 px-md-4">
+
+  <!-- A. Header -->
+  <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
+    <div>
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <span class="badge text-uppercase px-2 py-1" style="background-color: #EEF1EF; color: #005B50; font-size: 0.72rem; font-weight: 700;">
+          <i class="bi bi-hospital me-1"></i> {{ user.organization_name|default:user.username }}
+        </span>
+        <span class="text-muted small">&bull; Waste Collection Dispatch</span>
+      </div>
+      <h1 class="h3 fw-bold mb-1" style="color: #071F1D;">Hospital Pickup Requests</h1>
+      <p class="text-muted small mb-0">
+        Submit scheduled dispatch orders, monitor collection truck arrivals, and review physical custody handovers.
+      </p>
+    </div>
+
+    <!-- Actions -->
+    <div class="d-flex flex-wrap gap-2">
+      <a href="{% url 'waste:inventory' %}" class="btn btn-outline-secondary rounded-pill px-3 shadow-sm btn-sm fw-semibold">
+        <i class="bi bi-trash me-1"></i> View Waste Inventory
+      </a>
+      <a href="{% url 'collection:hospital_request_create' %}" class="btn text-white rounded-pill px-4 shadow-sm btn-sm fw-semibold" style="background-color: #005B50;">
+        <i class="bi bi-calendar-plus me-1"></i> New Pickup Request
+      </a>
+    </div>
+  </div>
+
+  <!-- Messages Feedback -->
+  {% if messages %}
+    <div class="mb-4">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show rounded-3 shadow-sm" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <!-- B. KPI Summary Cards Grid -->
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+      <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="text-muted small text-uppercase fw-semibold" style="font-size: 0.7rem;">Total Requests</span>
+          <div class="rounded-3 p-2 d-flex align-items-center justify-content-center" style="background-color: #EEF1EF; color: #005B50; width: 38px; height: 38px;">
+            <i class="bi bi-journal-text fs-5"></i>
+          </div>
+        </div>
+        <div class="h3 fw-bold mb-0" style="color: #071F1D;">{{ stats_total_requests }}</div>
+        <div class="text-muted small mt-1" style="font-size: 0.72rem;">All recorded consignments</div>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-lg-3">
+      <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="text-muted small text-uppercase fw-semibold" style="font-size: 0.7rem;">Active / Scheduled</span>
+          <div class="rounded-3 p-2 d-flex align-items-center justify-content-center" style="background-color: #FEF3C7; color: #D97706; width: 38px; height: 38px;">
+            <i class="bi bi-truck fs-5"></i>
+          </div>
+        </div>
+        <div class="h3 fw-bold mb-0 text-warning">{{ stats_active_pickups }}</div>
+        <div class="text-muted small mt-1" style="font-size: 0.72rem;">Awaiting collection or en route</div>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-lg-3">
+      <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="text-muted small text-uppercase fw-semibold" style="font-size: 0.7rem;">Completed Collections</span>
+          <div class="rounded-3 p-2 d-flex align-items-center justify-content-center" style="background-color: #ECFDF5; color: #059669; width: 38px; height: 38px;">
+            <i class="bi bi-check2-circle fs-5"></i>
+          </div>
+        </div>
+        <div class="h3 fw-bold mb-0 text-success">{{ stats_completed_pickups }}</div>
+        <div class="text-muted small mt-1" style="font-size: 0.72rem;">Successfully transferred to logistics</div>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-lg-3">
+      <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="text-muted small text-uppercase fw-semibold" style="font-size: 0.7rem;">Total Weight Picked</span>
+          <div class="rounded-3 p-2 d-flex align-items-center justify-content-center" style="background-color: #FFF3EB; color: #F36B21; width: 38px; height: 38px;">
+            <i class="bi bi-speedometer2 fs-5"></i>
+          </div>
+        </div>
+        <div class="h3 fw-bold mb-0" style="color: #F36B21;">
+          {{ stats_total_weight_collected|floatformat:2 }} <span class="fs-6 text-muted">KG</span>
+        </div>
+        <div class="text-muted small mt-1" style="font-size: 0.72rem;">Cumulative collected biohazard weight</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- C. Filter Bar & Navigation Tabs -->
+  <div class="card border-0 shadow-sm rounded-4 p-3 mb-4 bg-white">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+      <!-- Status Tabs -->
+      <ul class="nav nav-pills gap-1">
+        <li class="nav-item">
+          <a class="nav-link rounded-pill px-3 py-1 small fw-semibold {% if current_tab == 'all' %}active text-white{% else %}text-muted{% endif %}"
+             {% if current_tab == 'all' %}style="background-color: #005B50;"{% endif %}
+             href="?tab=all{% if search_q %}&q={{ search_q }}{% endif %}">
+            All ({{ stats_total_requests }})
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link rounded-pill px-3 py-1 small fw-semibold {% if current_tab == 'pending' %}active text-white{% else %}text-muted{% endif %}"
+             {% if current_tab == 'pending' %}style="background-color: #005B50;"{% endif %}
+             href="?tab=pending{% if search_q %}&q={{ search_q }}{% endif %}">
+            Pending Review
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link rounded-pill px-3 py-1 small fw-semibold {% if current_tab == 'scheduled' %}active text-white{% else %}text-muted{% endif %}"
+             {% if current_tab == 'scheduled' %}style="background-color: #005B50;"{% endif %}
+             href="?tab=scheduled{% if search_q %}&q={{ search_q }}{% endif %}">
+            Scheduled &amp; In Transit
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link rounded-pill px-3 py-1 small fw-semibold {% if current_tab == 'completed' %}active text-white{% else %}text-muted{% endif %}"
+             {% if current_tab == 'completed' %}style="background-color: #005B50;"{% endif %}
+             href="?tab=completed{% if search_q %}&q={{ search_q }}{% endif %}">
+            Collected
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link rounded-pill px-3 py-1 small fw-semibold {% if current_tab == 'cancelled' %}active text-white{% else %}text-muted{% endif %}"
+             {% if current_tab == 'cancelled' %}style="background-color: #005B50;"{% endif %}
+             href="?tab=cancelled{% if search_q %}&q={{ search_q }}{% endif %}">
+            Cancelled
+          </a>
+        </li>
+      </ul>
+
+      <!-- Search Box -->
+      <form method="get" action="" class="d-flex align-items-center gap-2">
+        <input type="hidden" name="tab" value="{{ current_tab }}">
+        <div class="input-group input-group-sm" style="min-width: 240px;">
+          <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-search"></i></span>
+          <input type="text" name="q" class="form-control border-start-0" placeholder="Search reference number..." value="{{ search_q }}">
+        </div>
+        <button type="submit" class="btn btn-sm btn-outline-secondary rounded-pill px-3">Filter</button>
+        {% if search_q %}
+          <a href="?tab={{ current_tab }}" class="btn btn-sm btn-link text-muted p-0 ms-1" title="Clear search"><i class="bi bi-x-circle fs-6"></i></a>
+        {% endif %}
+      </form>
+    </div>
+  </div>
+
+  <!-- D. Collection Requests Table -->
+  <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white mb-4">
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead style="background-color: #EEF1EF; color: #071F1D; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em;">
+          <tr>
+            <th class="ps-4 py-3">Reference #</th>
+            <th class="py-3">Preferred Schedule</th>
+            <th class="py-3">Confirmed Schedule</th>
+            <th class="py-3">Bags &amp; Net Weight</th>
+            <th class="py-3">Assigned Collector</th>
+            <th class="py-3">Status</th>
+            <th class="text-end pe-4 py-3">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for req in page_obj %}
+            <tr style="border-bottom: 1px solid #F0F2F1;">
+              <!-- Reference Number -->
+              <td class="ps-4">
+                <a href="{% url 'collection:hospital_request_detail' req.reference_number %}" class="font-monospace fw-bold text-decoration-none" style="color: #005B50;">
+                  {{ req.reference_number }}
+                </a>
+                <div class="text-muted" style="font-size: 0.72rem;">Logged {{ req.created_at|date:"d M Y, H:i" }}</div>
+              </td>
+
+              <!-- Preferred Schedule -->
+              <td>
+                <div class="fw-semibold text-dark small">{{ req.preferred_pickup_date|date:"D, d M Y" }}</div>
+                <div class="text-muted" style="font-size: 0.75rem;">{{ req.preferred_pickup_time|time:"H:i" }}</div>
+              </td>
+
+              <!-- Confirmed Schedule -->
+              <td>
+                {% if req.confirmed_pickup_date %}
+                  <div class="fw-bold small text-success">
+                    <i class="bi bi-calendar-check me-1"></i> {{ req.confirmed_pickup_date|date:"D, d M Y" }}
+                  </div>
+                  <div class="text-muted" style="font-size: 0.75rem;">{{ req.confirmed_pickup_time|time:"H:i" }}</div>
+                {% else %}
+                  <span class="badge bg-secondary-subtle text-secondary small fw-normal">Awaiting Review</span>
+                {% endif %}
+              </td>
+
+              <!-- Bags & Net Weight -->
+              <td>
+                <div class="fw-bold text-dark small">{{ req.total_bags }} bag(s)</div>
+                <div class="fw-bold" style="color: #F36B21; font-size: 0.78rem;">{{ req.total_weight }} KG</div>
+              </td>
+
+              <!-- Assigned Collector -->
+              <td>
+                {% if req.assigned_collector %}
+                  <div class="small fw-semibold text-dark">
+                    <i class="bi bi-person-badge me-1 text-primary"></i> {{ req.assigned_collector.get_full_name|default:req.assigned_collector.username }}
+                  </div>
+                  <div class="text-muted" style="font-size: 0.72rem;">{{ req.assigned_collector.organization_name|default:"Transport Fleet" }}</div>
+                {% else %}
+                  <span class="text-muted small">&mdash; Unassigned</span>
+                {% endif %}
+              </td>
+
+              <!-- Status Badge -->
+              <td>
+                <span class="badge rounded-pill px-3 py-1" style="font-size: 0.72rem;
+                  {% if req.status == 'REQUESTED' or req.status == 'UNDER_REVIEW' %}background-color: #FEF3C7; color: #92400E;
+                  {% elif req.status == 'APPROVED' %}background-color: #DBEAFE; color: #1E40AF;
+                  {% elif req.status == 'SCHEDULED' or req.status == 'ASSIGNED' %}background-color: #E0E7FF; color: #3730A3;
+                  {% elif req.status == 'ACCEPTED' %}background-color: #D1FAE5; color: #065F46;
+                  {% elif req.status == 'PICKUP_IN_PROGRESS' %}background-color: #FEF08A; color: #854D0E;
+                  {% elif req.status == 'COLLECTED' or req.status == 'COMPLETED' %}background-color: #D1FAE5; color: #065F46;
+                  {% elif req.status == 'COLLECTOR_REJECTED' %}background-color: #FFEDD5; color: #9A3412;
+                  {% elif req.status == 'CANCELLED' %}background-color: #FEE2E2; color: #991B1B;
+                  {% else %}background-color: #F3F4F6; color: #374151;{% endif %}">
+                  {{ req.get_status_display }}
+                </span>
+              </td>
+
+              <!-- Actions -->
+              <td class="text-end pe-4">
+                <a href="{% url 'collection:hospital_request_detail' req.reference_number %}" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1" style="font-size: 0.75rem;">
+                  <i class="bi bi-eye me-1"></i> Inspect
+                </a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="7" class="text-center py-5">
+                <div class="py-4">
+                  <div class="rounded-circle d-inline-flex align-items-center justify-content-center p-3 mb-3" style="background-color: #EEF1EF; color: #005B50; font-size: 2rem;">
+                    <i class="bi bi-calendar-x"></i>
+                  </div>
+                  <h3 class="h5 fw-bold text-dark mb-1">No Collection Requests Found</h3>
+                  <p class="text-muted small mb-3" style="max-width: 420px; margin: 0 auto;">
+                    {% if search_q or current_tab != 'all' %}
+                      No collection requests match your selected filters. Try clearing your search query.
+                    {% else %}
+                      Your hospital facility has not submitted any collection pickup requests yet.
+                    {% endif %}
+                  </p>
+                  <a href="{% url 'collection:hospital_request_create' %}" class="btn text-white rounded-pill px-4 shadow-sm btn-sm" style="background-color: #005B50;">
+                    <i class="bi bi-calendar-plus me-1"></i> Submit First Pickup Request
+                  </a>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+      <div class="p-3 border-top d-flex justify-content-between align-items-center bg-light">
+        <div class="text-muted small">
+          Showing <strong>{{ page_obj.start_index }}</strong> to <strong>{{ page_obj.end_index }}</strong> of <strong>{{ page_obj.paginator.count }}</strong> requests
+        </div>
+        <nav aria-label="Requests pagination">
+          <ul class="pagination pagination-sm mb-0">
+            {% if page_obj.has_previous %}
+              <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&tab={{ current_tab }}{% if search_q %}&q={{ search_q }}{% endif %}">&laquo;</a></li>
+            {% endif %}
+            {% for num in page_obj.paginator.page_range %}
+              {% if page_obj.number == num %}
+                <li class="page-item active"><span class="page-link" style="background-color: #005B50; border-color: #005B50;">{{ num }}</span></li>
+              {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <li class="page-item"><a class="page-link" href="?page={{ num }}&tab={{ current_tab }}{% if search_q %}&q={{ search_q }}{% endif %}">{{ num }}</a></li>
+              {% endif %}
+            {% endfor %}
+            {% if page_obj.has_next %}
+              <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&tab={{ current_tab }}{% if search_q %}&q={{ search_q }}{% endif %}">&raquo;</a></li>
+            {% endif %}
+          </ul>
+        </nav>
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
+

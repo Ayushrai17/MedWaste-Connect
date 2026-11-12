@@ -1,0 +1,130 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}Gate Reception Check-In — {{ collection_req.reference_number }} — {{ SITE_NAME }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="container-fluid py-2" style="max-width: 900px;">
+  <!-- Header -->
+  <div class="mb-4">
+    <a href="{% url 'treatment:facility_incoming_manifests' %}" class="btn btn-sm btn-outline-secondary rounded-pill mb-2">
+      <i class="bi bi-arrow-left me-1"></i> Back to Incoming Queue
+    </a>
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <span class="badge rounded-pill text-white" style="background-color: var(--teal-deep);">
+        Gate Check-In
+      </span>
+      <span class="badge bg-light text-muted border font-monospace">
+        {{ collection_req.reference_number }}
+      </span>
+    </div>
+    <h1 class="h3 fw-bold mb-0 text-dark">
+      Receive Biomedical Waste Consignment
+    </h1>
+    <p class="text-muted small mb-0">
+      Record scale arrival weighment and admit vehicle consignment for itemized verification.
+    </p>
+  </div>
+
+  <!-- Messages Feedback -->
+  {% if messages %}
+    <div class="mb-4">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show rounded-3 shadow-sm" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <!-- Consignment Summary Card -->
+  <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <span class="text-muted small text-uppercase fw-semibold" style="font-size: 0.68rem;">Originating Healthcare Facility</span>
+        <div class="h5 fw-bold text-dark mb-1">{{ collection_req.hospital.organization_name|default:collection_req.hospital.username }}</div>
+        <div class="small text-muted"><i class="bi bi-geo-alt me-1 text-danger"></i> {{ collection_req.pickup_address }}</div>
+      </div>
+      <div class="col-md-6">
+        <span class="text-muted small text-uppercase fw-semibold" style="font-size: 0.68rem;">Logistics &amp; Transport</span>
+        <div class="fw-bold text-dark">{{ collection_req.assigned_collector.get_full_name|default:collection_req.assigned_collector.username }}</div>
+        <div class="small text-muted"><i class="bi bi-telephone me-1"></i> {{ collection_req.assigned_collector.phone|default:"Vehicle driver" }}</div>
+      </div>
+      <div class="col-6 col-md-3 pt-3 border-top">
+        <span class="text-muted small">Expected Bags:</span>
+        <div class="h5 fw-bold text-dark mb-0">{{ collection_req.total_bags }}</div>
+      </div>
+      <div class="col-6 col-md-3 pt-3 border-top">
+        <span class="text-muted small">Origin Dispatch Weight:</span>
+        <div class="h5 fw-bold text-dark mb-0">{{ collection_req.total_weight }} <span class="small text-muted fw-normal">KG</span></div>
+      </div>
+      <div class="col-6 col-md-3 pt-3 border-top">
+        <span class="text-muted small">Plant Daily Capacity:</span>
+        <div class="h5 fw-bold text-dark mb-0">{{ metrics.daily_capacity_kg }} <span class="small text-muted fw-normal">KG</span></div>
+      </div>
+      <div class="col-6 col-md-3 pt-3 border-top">
+        <span class="text-muted small">Remaining Headroom:</span>
+        <div class="h5 fw-bold text-success mb-0">{{ metrics.remaining_capacity_kg }} <span class="small text-muted fw-normal">KG</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gate Reception Check-In Form -->
+  <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white mb-4">
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger rounded-3 mb-4">
+          {% for err in form.non_field_errors %}
+            <div><i class="bi bi-exclamation-triangle-fill me-1"></i> {{ err }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <div class="mb-4">
+        <label class="form-label fw-bold text-dark">
+          Actual Gross Scale Received Weight (KG) <span class="text-danger">*</span>
+        </label>
+        {{ form.gross_received_weight }}
+        <div class="form-text small">Enter the total weighed intake at the plant weighbridge scale.</div>
+        {% if form.gross_received_weight.errors %}
+          <div class="text-danger small mt-1">{{ form.gross_received_weight.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      <div class="p-3 bg-light rounded-3 mb-4 border">
+        <div class="form-check">
+          {{ form.capacity_override_authorized }}
+          <label class="form-check-label fw-bold text-dark" for="{{ form.capacity_override_authorized.id_for_label }}">
+            Authorize Administrative Capacity Override
+          </label>
+        </div>
+        <div class="form-text small mb-2">Check this option only if an authorized administrator has approved receiving waste exceeding plant daily capacity limits.</div>
+        <div class="mt-2" id="override_reason_wrapper">
+          <label class="form-label small fw-semibold text-muted">Mandatory Override Reason</label>
+          {{ form.capacity_override_reason }}
+          {% if form.capacity_override_reason.errors %}
+            <div class="text-danger small mt-1">{{ form.capacity_override_reason.errors.0 }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <label class="form-label small fw-semibold text-muted">Gate Reception Remarks &amp; Vehicle Observations</label>
+        {{ form.remarks }}
+      </div>
+
+      <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+        <a href="{% url 'treatment:facility_incoming_manifests' %}" class="btn btn-outline-secondary rounded-pill px-4">
+          Cancel
+        </a>
+        <button type="submit" class="btn text-white rounded-pill px-4 fw-semibold" style="background-color: #005B50;">
+          <i class="bi bi-check-circle me-1"></i> Admit Consignment to Dock
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+

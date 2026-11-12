@@ -1,0 +1,378 @@
+{% extends "dashboard_base.html" %}
+
+{% block dashboard_content %}
+<div class="container-fluid py-4 px-3 px-md-4">
+  <!-- Header -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <a href="{% url 'dashboard_admin' %}" class="text-decoration-none text-muted small">&larr; Directorate Overview</a>
+      </div>
+      <h2 class="h3 fw-bold mb-0 text-dark">Administrative Operational Oversight</h2>
+      <p class="text-muted small mb-0">Live end-to-end monitoring across collection dispatch, treatment plant intake, batch processing, and chain of custody.</p>
+    </div>
+  </div>
+
+  <!-- Operational Tabs Navigation -->
+  <ul class="nav nav-pills mb-4 gap-2" id="oversightTabs" role="tablist">
+    <li class="nav-item">
+      <a class="nav-link {% if active_tab == 'collection' %}active{% endif %} rounded-pill px-3 small" href="?tab=collection">
+        <i class="bi bi-truck me-1"></i> Collection Logistics
+        {% if delayed_requests or unassigned_requests %}
+          <span class="badge bg-danger rounded-pill ms-1">{{ delayed_requests|add:unassigned_requests }}</span>
+        {% endif %}
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link {% if active_tab == 'facility' %}active{% endif %} rounded-pill px-3 small" href="?tab=facility">
+        <i class="bi bi-box-arrow-in-down me-1"></i> Plant Reception &amp; Gate Check-in
+        {% if damaged_receipts or missing_receipts %}
+          <span class="badge bg-warning text-dark rounded-pill ms-1">{{ damaged_receipts|add:missing_receipts }}</span>
+        {% endif %}
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link {% if active_tab == 'treatment' %}active{% endif %} rounded-pill px-3 small" href="?tab=treatment">
+        <i class="bi bi-fire me-1"></i> Treatment &amp; Disposal Runs
+        {% if unverified_disposals %}
+          <span class="badge bg-info text-dark rounded-pill ms-1">{{ unverified_disposals }}</span>
+        {% endif %}
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link {% if active_tab == 'custody' %}active{% endif %} rounded-pill px-3 small" href="?tab=custody">
+        <i class="bi bi-shield-check me-1"></i> Chain of Custody &amp; Exceptions
+        {% if open_critical_disc %}
+          <span class="badge bg-danger rounded-pill ms-1">{{ open_critical_disc }}</span>
+        {% endif %}
+      </a>
+    </li>
+  </ul>
+
+  <!-- Tab 1: Collection Logistics Oversight -->
+  {% if active_tab == 'collection' %}
+    <!-- Summary Counter Cards -->
+    <div class="row g-3 mb-4">
+      <div class="col-sm-6 col-lg-3">
+        <div class="p-3 rounded-3 border bg-white shadow-sm">
+          <div class="text-muted small fw-semibold text-uppercase">Unassigned Requests</div>
+          <div class="h3 fw-bold {% if unassigned_requests > 0 %}text-danger{% else %}text-success{% endif %} mb-0">{{ unassigned_requests }}</div>
+          <div class="small text-muted">Awaiting driver assignment</div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="p-3 rounded-3 border bg-white shadow-sm">
+          <div class="text-muted small fw-semibold text-uppercase">Delayed Pickups</div>
+          <div class="h3 fw-bold {% if delayed_requests > 0 %}text-danger{% else %}text-success{% endif %} mb-0">{{ delayed_requests }}</div>
+          <div class="small text-muted">Confirmed pickup window elapsed</div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="p-3 rounded-3 border bg-white shadow-sm">
+          <div class="text-muted small fw-semibold text-uppercase">Rejected Assignments</div>
+          <div class="h3 fw-bold {% if rejected_assignments > 0 %}text-warning{% else %}text-muted{% endif %} mb-0">{{ rejected_assignments }}</div>
+          <div class="small text-muted">Declined by driver</div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="p-3 rounded-3 border bg-white shadow-sm">
+          <div class="text-muted small fw-semibold text-uppercase">All Active Requests</div>
+          <div class="h3 fw-bold text-dark mb-0">{{ collection_requests.count }}</div>
+          <div class="small text-muted">Monitored dispatches</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Requests Table -->
+    <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
+      <div class="card-header bg-white py-3 px-4 border-bottom d-flex justify-content-between align-items-center">
+        <h6 class="fw-bold text-dark mb-0">Collection Request Dispatch Manifests</h6>
+        <a href="{% url 'collection:admin_dashboard' %}" class="small text-decoration-none fw-semibold" style="color: var(--teal-deep, #005B50);">
+          Open Dispatcher Console &rarr;
+        </a>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light small text-uppercase text-muted">
+            <tr>
+              <th class="ps-4">Reference</th>
+              <th>Hospital</th>
+              <th>Confirmed Schedule</th>
+              <th>Assigned Collector</th>
+              <th>Destination Plant</th>
+              <th>Status</th>
+              <th class="text-end pe-4">Detail</th>
+            </tr>
+          </thead>
+          <tbody class="small">
+            {% for r in collection_requests %}
+              <tr>
+                <td class="ps-4 fw-semibold text-dark">{{ r.reference_number }}</td>
+                <td>{{ r.hospital.organization_name|default:r.hospital.username }}</td>
+                <td>
+                  {% if r.confirmed_pickup_date %}
+                    {{ r.confirmed_pickup_date|date:"d M Y" }} ({{ r.confirmed_pickup_time|time:"H:i" }})
+                  {% else %}
+                    <span class="text-muted">{{ r.preferred_pickup_date|date:"d M Y" }} (Pref)</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if r.assigned_collector %}
+                    <span class="fw-semibold">@{{ r.assigned_collector.username }}</span>
+                  {% else %}
+                    <span class="badge bg-danger-subtle text-danger">Unassigned</span>
+                  {% endif %}
+                </td>
+                <td>{{ r.destination_facility.name|default:"—" }}</td>
+                <td>
+                  <span class="badge bg-secondary-subtle text-secondary border">{{ r.get_status_display }}</span>
+                </td>
+                <td class="text-end pe-4">
+                  <a href="{% url 'collection:admin_request_detail' r.reference_number %}" class="btn btn-sm btn-outline-dark rounded-pill px-3">
+                    Inspect &rarr;
+                  </a>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="7" class="text-center py-4 text-muted small">Zero collection requests found.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  <!-- Tab 2: Facility Oversight -->
+  {% elif active_tab == 'facility' %}
+    <div class="row g-3 mb-4">
+      <div class="col-sm-6 col-lg-4">
+        <div class="p-3 rounded-3 border bg-white shadow-sm text-center">
+          <div class="text-muted small fw-semibold text-uppercase">Damaged Packaging Flags</div>
+          <div class="h3 fw-bold {% if damaged_receipts > 0 %}text-danger{% else %}text-success{% endif %} mb-0">{{ damaged_receipts }}</div>
+          <div class="small text-muted">Observed at gate check-in</div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-4">
+        <div class="p-3 rounded-3 border bg-white shadow-sm text-center">
+          <div class="text-muted small fw-semibold text-uppercase">Missing Consignment Bags</div>
+          <div class="h3 fw-bold {% if missing_receipts > 0 %}text-danger{% else %}text-success{% endif %} mb-0">{{ missing_receipts }}</div>
+          <div class="small text-muted">Flagged by facility inspectors</div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-4">
+        <div class="p-3 rounded-3 border bg-white shadow-sm text-center">
+          <div class="text-muted small fw-semibold text-uppercase">Recent Inbound Manifests</div>
+          <div class="h3 fw-bold text-dark mb-0">{{ manifests.count }}</div>
+          <div class="small text-muted">Plant gate deliveries</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
+      <div class="card-header bg-white py-3 px-4 border-bottom">
+        <h6 class="fw-bold text-dark mb-0">Treatment Plant Inbound Gate Reception Manifests</h6>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light small text-uppercase text-muted">
+            <tr>
+              <th class="ps-4">Reception Ref</th>
+              <th>Facility</th>
+              <th>Collection Ref</th>
+              <th>Gate Weighment</th>
+              <th>Bag Reconcile</th>
+              <th>Arrival Time</th>
+              <th class="text-end pe-4">Status</th>
+            </tr>
+          </thead>
+          <tbody class="small">
+            {% for m in manifests %}
+              <tr>
+                <td class="ps-4 fw-semibold text-dark">{{ m.reference_number }}</td>
+                <td>{{ m.facility.name }}</td>
+                <td>{{ m.collection_request.reference_number }}</td>
+                <td><span class="badge bg-light text-dark border">{{ m.gross_received_weight }} kg</span></td>
+                <td>
+                  <span class="text-success">{{ m.accepted_bag_count }} acc</span> &bull;
+                  <span class="text-danger">{{ m.rejected_bag_count }} rej</span> &bull;
+                  <span class="text-warning">{{ m.missing_bag_count }} miss</span>
+                </td>
+                <td class="text-muted">{{ m.received_at|date:"d M, H:i" }}</td>
+                <td class="text-end pe-4">
+                  <span class="badge bg-secondary-subtle text-secondary border">{{ m.get_status_display }}</span>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="7" class="text-center py-4 text-muted small">No facility reception manifests logged.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  <!-- Tab 3: Treatment & Disposal Oversight -->
+  {% elif active_tab == 'treatment' %}
+    <div class="row g-3 mb-4">
+      <div class="col-sm-6 col-lg-3">
+        <div class="p-3 rounded-3 border bg-white shadow-sm text-center">
+          <div class="text-muted small fw-semibold text-uppercase">Pending Batches</div>
+          <div class="h3 fw-bold text-warning mb-0">{{ pending_batches }}</div>
+          <div class="small text-muted">Staged for treatment</div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="p-3 rounded-3 border bg-white shadow-sm text-center">
+          <div class="text-muted small fw-semibold text-uppercase">Active Processing Cycles</div>
+          <div class="h3 fw-bold text-primary mb-0">{{ in_progress_batches }}</div>
+          <div class="small text-muted">Autoclave / Incinerator runs</div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="p-3 rounded-3 border bg-white shadow-sm text-center">
+          <div class="text-muted small fw-semibold text-uppercase">Failed / On-Hold Runs</div>
+          <div class="h3 fw-bold {% if failed_batches > 0 %}text-danger{% else %}text-muted{% endif %} mb-0">{{ failed_batches }}</div>
+          <div class="small text-muted">Cycle interrupted</div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="p-3 rounded-3 border bg-white shadow-sm text-center">
+          <div class="text-muted small fw-semibold text-uppercase">Disposals Unverified</div>
+          <div class="h3 fw-bold {% if unverified_disposals > 0 %}text-warning{% else %}text-success{% endif %} mb-0">{{ unverified_disposals }}</div>
+          <div class="small text-muted">Awaiting admin sign-off</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Treatment Batches Table -->
+    <div class="card border-0 shadow-sm rounded-3 mb-4 overflow-hidden">
+      <div class="card-header bg-white py-3 px-4 border-bottom d-flex justify-content-between align-items-center">
+        <h6 class="fw-bold text-dark mb-0">Active &amp; Completed Treatment Batches</h6>
+        <a href="{% url 'treatment:admin_treatment_overview' %}" class="small text-decoration-none fw-semibold" style="color: var(--teal-deep, #005B50);">
+          Treatment Console &rarr;
+        </a>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light small text-uppercase text-muted">
+            <tr>
+              <th class="ps-4">Batch Number</th>
+              <th>Facility</th>
+              <th>Technology Method</th>
+              <th>Processing Weight</th>
+              <th>Operator</th>
+              <th>Status</th>
+              <th class="text-end pe-4">Created</th>
+            </tr>
+          </thead>
+          <tbody class="small">
+            {% for b in batches %}
+              <tr>
+                <td class="ps-4 fw-semibold text-dark">{{ b.batch_number }}</td>
+                <td>{{ b.facility.name }}</td>
+                <td><span class="badge bg-light text-dark border">{{ b.get_treatment_method_display }}</span></td>
+                <td>{{ b.processing_weight }} kg</td>
+                <td>@{{ b.operator.username }}</td>
+                <td>
+                  <span class="badge {% if b.status == 'COMPLETED' %}bg-success-subtle text-success{% elif b.status == 'IN_PROGRESS' %}bg-primary-subtle text-primary{% else %}bg-secondary-subtle text-secondary{% endif %}">
+                    {{ b.get_status_display }}
+                  </span>
+                </td>
+                <td class="text-end pe-4 text-muted">{{ b.created_at|date:"d M, H:i" }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="7" class="text-center py-4 text-muted small">No treatment batches logged yet.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  <!-- Tab 4: Chain of Custody & Exceptions Oversight -->
+  {% elif active_tab == 'custody' %}
+    <div class="row g-3 mb-4">
+      <div class="col-sm-6 col-lg-3">
+        <div class="p-3 rounded-3 border bg-white shadow-sm text-center">
+          <div class="text-muted small fw-semibold text-uppercase">Critical Exceptions</div>
+          <div class="h3 fw-bold {% if open_critical_disc > 0 %}text-danger{% else %}text-success{% endif %} mb-0">{{ open_critical_disc }}</div>
+          <div class="small text-muted">Unresolved biohazard breaches</div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="p-3 rounded-3 border bg-white shadow-sm text-center">
+          <div class="text-muted small fw-semibold text-uppercase">High Severity Exceptions</div>
+          <div class="h3 fw-bold {% if open_high_disc > 0 %}text-warning{% else %}text-success{% endif %} mb-0">{{ open_high_disc }}</div>
+          <div class="small text-muted">Weight variances &amp; damage</div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="p-3 rounded-3 border bg-white shadow-sm text-center">
+          <div class="text-muted small fw-semibold text-uppercase">Disputed Handovers</div>
+          <div class="h3 fw-bold {% if disputed_handovers > 0 %}text-danger{% else %}text-success{% endif %} mb-0">{{ disputed_handovers }}</div>
+          <div class="small text-muted">Unacknowledged transfer events</div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="p-3 rounded-3 border bg-white shadow-sm text-center">
+          <div class="text-muted small fw-semibold text-uppercase">Custody Handovers</div>
+          <div class="h3 fw-bold text-dark mb-0">{{ handovers.count }}</div>
+          <div class="small text-muted">Dual-party transfer milestones</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Discrepancies Table -->
+    <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
+      <div class="card-header bg-white py-3 px-4 border-bottom d-flex justify-content-between align-items-center">
+        <h6 class="fw-bold text-dark mb-0">Active Exceptions &amp; Discrepancy Log</h6>
+        <a href="{% url 'tracking:discrepancy_list' %}" class="small text-decoration-none fw-semibold" style="color: var(--teal-deep, #005B50);">
+          Exceptions Console &rarr;
+        </a>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light small text-uppercase text-muted">
+            <tr>
+              <th class="ps-4">Reference</th>
+              <th>Category</th>
+              <th>Severity</th>
+              <th>Bag ID / Manifest</th>
+              <th>Description</th>
+              <th>Reported</th>
+              <th class="text-end pe-4">Status</th>
+            </tr>
+          </thead>
+          <tbody class="small">
+            {% for d in discrepancies %}
+              <tr>
+                <td class="ps-4 fw-semibold text-dark">{{ d.discrepancy_reference }}</td>
+                <td>{{ d.get_discrepancy_type_display }}</td>
+                <td>
+                  <span class="badge {% if d.severity == 'CRITICAL' %}bg-danger{% elif d.severity == 'HIGH' %}bg-warning text-dark{% else %}bg-info text-dark{% endif %}">
+                    {{ d.severity }}
+                  </span>
+                </td>
+                <td>{% if d.bag %}{{ d.bag.bag_id }}{% else %}—{% endif %}</td>
+                <td class="text-truncate" style="max-width: 260px;">{{ d.description }}</td>
+                <td class="text-muted">{{ d.reported_at|date:"d M, H:i" }}</td>
+                <td class="text-end pe-4">
+                  <span class="badge bg-secondary-subtle text-secondary border">{{ d.get_status_display }}</span>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="7" class="text-center py-4 text-muted small">No exceptions on file.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
+

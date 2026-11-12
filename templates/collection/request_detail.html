@@ -1,0 +1,540 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}Pickup Manifest {{ collection_req.reference_number }} — MedWaste Connect{% endblock %}
+
+{% block dashboard_content %}
+<div class="container-fluid py-3 px-md-4">
+
+  <!-- Breadcrumbs -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-1 small">
+          {% if is_hospital %}
+            <li class="breadcrumb-item"><a href="{% url 'collection:hospital_request_list' %}" class="text-decoration-none" style="color: #005B50;">Pickup Requests</a></li>
+          {% elif is_collector %}
+            <li class="breadcrumb-item"><a href="{% url 'collection:collector_dashboard' %}" class="text-decoration-none" style="color: #005B50;">Collector Dashboard</a></li>
+          {% elif is_admin %}
+            <li class="breadcrumb-item"><a href="{% url 'collection:admin_dashboard' %}" class="text-decoration-none" style="color: #005B50;">Collection Operations</a></li>
+          {% endif %}
+          <li class="breadcrumb-item active font-monospace" aria-current="page">{{ collection_req.reference_number }}</li>
+        </ol>
+      </nav>
+      <div class="d-flex align-items-center gap-2">
+        <h1 class="h3 fw-bold mb-0" style="color: #071F1D;">Collection Request Manifest</h1>
+        <span class="badge rounded-pill px-3 py-1 font-monospace" style="font-size: 0.78rem;
+          {% if collection_req.status == 'REQUESTED' or collection_req.status == 'UNDER_REVIEW' %}background-color: #FEF3C7; color: #92400E;
+          {% elif collection_req.status == 'APPROVED' %}background-color: #DBEAFE; color: #1E40AF;
+          {% elif collection_req.status == 'SCHEDULED' or collection_req.status == 'ASSIGNED' %}background-color: #E0E7FF; color: #3730A3;
+          {% elif collection_req.status == 'ACCEPTED' %}background-color: #D1FAE5; color: #065F46;
+          {% elif collection_req.status == 'PICKUP_IN_PROGRESS' %}background-color: #FEF08A; color: #854D0E;
+          {% elif collection_req.status == 'COLLECTED' or collection_req.status == 'COMPLETED' %}background-color: #D1FAE5; color: #065F46;
+          {% elif collection_req.status == 'COLLECTOR_REJECTED' %}background-color: #FFEDD5; color: #9A3412;
+          {% elif collection_req.status == 'CANCELLED' %}background-color: #FEE2E2; color: #991B1B;
+          {% else %}background-color: #F3F4F6; color: #374151;{% endif %}">
+          {{ collection_req.get_status_display }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Header Operations Bar -->
+    <div class="d-flex flex-wrap gap-2">
+      {% if is_hospital and collection_req.is_cancellable %}
+        <button type="button" class="btn btn-outline-danger rounded-pill px-3 btn-sm" data-bs-toggle="modal" data-bs-target="#cancelModal">
+          <i class="bi bi-x-circle me-1"></i> Cancel Request
+        </button>
+      {% endif %}
+
+      {% if is_admin %}
+        {% if collection_req.can_be_assigned %}
+          <a href="{% url 'collection:admin_schedule_assign' collection_req.reference_number %}" class="btn text-white rounded-pill px-3 btn-sm fw-semibold" style="background-color: #005B50;">
+            <i class="bi bi-calendar-check me-1"></i> Confirm &amp; Assign Driver
+          </a>
+        {% endif %}
+        {% if collection_req.status == 'REQUESTED' or collection_req.status == 'UNDER_REVIEW' %}
+          <form method="post" action="{% url 'collection:admin_approve' collection_req.reference_number %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-success rounded-pill px-3 btn-sm">
+              <i class="bi bi-check2 me-1"></i> Approve
+            </button>
+          </form>
+          <a href="{% url 'collection:admin_reject' collection_req.reference_number %}" class="btn btn-outline-danger rounded-pill px-3 btn-sm">
+            <i class="bi bi-x me-1"></i> Reject
+          </a>
+        {% endif %}
+      {% endif %}
+
+      {% if is_collector %}
+        {% if collection_req.status == 'ASSIGNED' %}
+          <form method="post" action="{% url 'collection:collector_accept' collection_req.reference_number %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn text-white rounded-pill px-3 btn-sm fw-semibold" style="background-color: #005B50;">
+              <i class="bi bi-check-circle me-1"></i> Accept Assignment
+            </button>
+          </form>
+          <a href="{% url 'collection:collector_reject' collection_req.reference_number %}" class="btn btn-outline-danger rounded-pill px-3 btn-sm">
+            <i class="bi bi-x-circle me-1"></i> Decline
+          </a>
+        {% elif collection_req.status == 'ACCEPTED' %}
+          <form method="post" action="{% url 'collection:collector_start' collection_req.reference_number %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn text-white rounded-pill px-3 btn-sm fw-semibold" style="background-color: #F36B21;">
+              <i class="bi bi-truck me-1"></i> Start Journey
+            </button>
+          </form>
+        {% elif collection_req.status == 'PICKUP_IN_PROGRESS' %}
+          <button type="button" class="btn btn-success rounded-pill px-3 btn-sm fw-semibold shadow-sm" data-bs-toggle="modal" data-bs-target="#completeCollectionModal">
+            <i class="bi bi-check-all me-1"></i> Complete Collection
+          </button>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Messages Feedback -->
+  {% if messages %}
+    <div class="mb-4">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show rounded-3 shadow-sm" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <!-- Overview Details Cards -->
+  <div class="row g-3 mb-4">
+    <!-- Facility & Location -->
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+        <span class="text-muted small text-uppercase fw-semibold" style="font-size: 0.68rem;">Healthcare Facility</span>
+        <h2 class="h5 fw-bold text-dark mt-1 mb-1">
+          {{ collection_req.hospital.organization_name|default:collection_req.hospital.username }}
+        </h2>
+        <div class="text-muted small mb-3">
+          <i class="bi bi-geo-alt-fill text-danger me-1"></i> {{ collection_req.pickup_address }}
+        </div>
+        <div class="pt-2 border-top small text-muted">
+          <div><i class="bi bi-person me-1"></i> Coordinator: <strong class="text-dark">{{ collection_req.contact_person }}</strong></div>
+          <div><i class="bi bi-telephone me-1"></i> Phone: <strong class="text-dark">{{ collection_req.contact_phone }}</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Schedule Windows -->
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+        <span class="text-muted small text-uppercase fw-semibold" style="font-size: 0.68rem;">Schedule Windows</span>
+
+        <!-- Confirmed Schedule -->
+        {% if collection_req.confirmed_pickup_date %}
+          <div class="mt-1 mb-2 p-2 rounded-3" style="background-color: #ECFDF5; border-left: 3px solid #059669;">
+            <div class="text-success small fw-bold"><i class="bi bi-calendar-check me-1"></i> Confirmed Schedule:</div>
+            <div class="fw-bold text-dark fs-6">{{ collection_req.confirmed_pickup_date|date:"D, d M Y" }} at {{ collection_req.confirmed_pickup_time|time:"H:i" }}</div>
+          </div>
+        {% else %}
+          <div class="mt-1 mb-2 p-2 rounded-3 bg-light">
+            <div class="text-muted small fw-semibold">Dispatch Confirmation:</div>
+            <span class="badge bg-secondary-subtle text-secondary small fw-normal">Pending Administrator Review</span>
+          </div>
+        {% endif %}
+
+        <!-- Preferred Schedule -->
+        <div class="small text-muted">
+          <div class="d-flex justify-content-between">
+            <span>Hospital Preferred:</span>
+            <strong class="text-dark">{{ collection_req.preferred_pickup_date|date:"d M Y" }} ({{ collection_req.preferred_pickup_time|time:"H:i" }})</strong>
+          </div>
+          {% if collection_req.alternative_pickup_date %}
+            <div class="d-flex justify-content-between mt-1">
+              <span>Alternative:</span>
+              <span class="text-dark">{{ collection_req.alternative_pickup_date|date:"d M Y" }} ({{ collection_req.alternative_pickup_time|time:"H:i" }})</span>
+            </div>
+          {% endif %}
+          {% if collection_req.actual_collection_time %}
+            <div class="d-flex justify-content-between mt-2 pt-2 border-top text-success fw-bold">
+              <span><i class="bi bi-clock-history me-1"></i> Collected At:</span>
+              <span>{{ collection_req.actual_collection_time|date:"d M Y, H:i" }}</span>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Assigned Logistics -->
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+        <span class="text-muted small text-uppercase fw-semibold" style="font-size: 0.68rem;">Logistics Allocation</span>
+        {% if collection_req.assigned_collector %}
+          <div class="d-flex align-items-center gap-2 mt-2 mb-2">
+            <div class="rounded-circle p-2 d-flex align-items-center justify-content-center text-white" style="background-color: #005B50; width: 40px; height: 40px;">
+              <i class="bi bi-truck fs-5"></i>
+            </div>
+            <div>
+              <div class="fw-bold text-dark">{{ collection_req.assigned_collector.get_full_name|default:collection_req.assigned_collector.username }}</div>
+              <div class="text-muted small">{{ collection_req.assigned_collector.organization_name|default:"Authorized Transport Fleet" }}</div>
+            </div>
+          </div>
+          <div class="pt-2 border-top small text-muted">
+            <div><i class="bi bi-telephone me-1"></i> Driver Contact: {{ collection_req.assigned_collector.phone|default:"Dispatched via Fleet Radio" }}</div>
+            <div><i class="bi bi-clock me-1"></i> Assigned: {{ collection_req.assigned_at|date:"d M Y, H:i" }}</div>
+          </div>
+        {% else %}
+          <div class="text-center py-3 my-auto">
+            <div class="text-muted mb-1"><i class="bi bi-truck fs-3 text-secondary"></i></div>
+            <div class="fw-semibold text-muted small">No collector assigned yet</div>
+            {% if is_admin %}
+              <a href="{% url 'collection:admin_schedule_assign' collection_req.reference_number %}" class="btn btn-sm btn-outline-primary rounded-pill px-3 mt-2">
+                Allocate Driver
+              </a>
+            {% endif %}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Destination Treatment Facility & Downstream Custody Card -->
+  <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white" style="border-left: 6px solid #005B50 !important;">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+      <div>
+        <span class="text-muted small text-uppercase fw-semibold" style="font-size: 0.68rem;">Destination Bio-Medical Treatment Plant</span>
+        {% if collection_req.destination_facility %}
+          <h3 class="h5 fw-bold text-dark mt-1 mb-1">
+            <i class="bi bi-buildings text-success me-2"></i> {{ collection_req.destination_facility.name }}
+          </h3>
+          <div class="small text-muted">
+            <i class="bi bi-geo-alt me-1 text-danger"></i> {{ collection_req.destination_facility.address }}, {{ collection_req.destination_facility.district }} &bull; SPCB CTO: <span class="font-monospace">{{ collection_req.destination_facility.license_number }}</span>
+          </div>
+        {% else %}
+          <h3 class="h6 fw-bold text-muted mt-1 mb-1">
+            <i class="bi bi-buildings text-secondary me-2"></i> Treatment Facility Designation in Progress
+          </h3>
+          <div class="small text-muted">Central dispatch will route this consignment to an authorized treatment plant.</div>
+        {% endif %}
+      </div>
+
+      <div class="text-md-end">
+        {% with reception=collection_req.facility_receptions.first %}
+          {% if reception %}
+            <div class="d-flex align-items-center justify-content-md-end gap-2">
+              <span class="small text-muted">Plant Gate Reception:</span>
+              <span class="badge {% if reception.status == 'ACCEPTED' %}bg-success{% elif reception.status == 'REJECTED' %}bg-danger{% else %}bg-warning text-dark{% endif %} fs-6">
+                {{ reception.get_status_display }}
+              </span>
+            </div>
+            <div class="small text-muted mt-1">
+              Received: <strong>{{ reception.gross_received_weight }} kg</strong> &bull; Accepted: <strong>{{ reception.accepted_bag_count }}/{{ reception.expected_bag_count }}</strong> bags
+            </div>
+          {% elif collection_req.status == 'COLLECTED' or collection_req.status == 'PICKUP_IN_PROGRESS' %}
+            <span class="badge bg-primary py-2 px-3 rounded-pill fs-6"><i class="bi bi-truck me-1"></i> In Transit to Treatment Facility</span>
+          {% else %}
+            <span class="badge bg-light text-muted border py-2 px-3 rounded-pill">Pre-Transit Phase</span>
+          {% endif %}
+        {% endwith %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Operational Notes & Special Instructions (if present) -->
+  {% if collection_req.special_instructions or collection_req.admin_notes or collection_req.collector_remarks or collection_req.rejection_reason %}
+    <div class="card border-0 shadow-sm rounded-4 p-3 mb-4 bg-white">
+      <div class="row g-3">
+        {% if collection_req.special_instructions %}
+          <div class="col-md-4">
+            <span class="text-muted small text-uppercase fw-semibold" style="font-size: 0.68rem;">Dock Access Instructions</span>
+            <p class="small text-dark mb-0 mt-1">{{ collection_req.special_instructions }}</p>
+          </div>
+        {% endif %}
+        {% if collection_req.admin_notes %}
+          <div class="col-md-4">
+            <span class="text-muted small text-uppercase fw-semibold" style="font-size: 0.68rem;">Dispatch Notes</span>
+            <p class="small text-dark mb-0 mt-1">{{ collection_req.admin_notes }}</p>
+          </div>
+        {% endif %}
+        {% if collection_req.collector_remarks %}
+          <div class="col-md-4">
+            <span class="text-muted small text-uppercase fw-semibold" style="font-size: 0.68rem;">Collector Handover Notes</span>
+            <p class="small text-dark mb-0 mt-1 whitespace-pre-line">{{ collection_req.collector_remarks }}</p>
+          </div>
+        {% endif %}
+        {% if collection_req.rejection_reason %}
+          <div class="col-12">
+            <div class="p-2 px-3 rounded-3 bg-danger-subtle text-danger small">
+              <strong>Decline Reason:</strong> {{ collection_req.rejection_reason }}
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- Collector Quick Verification Box (only visible to assigned collector during PICKUP_IN_PROGRESS) -->
+  {% if is_collector and collection_req.status == 'PICKUP_IN_PROGRESS' %}
+    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4" style="background-color: #ECFDF5; border: 2px dashed #059669 !important;">
+      <div class="row g-3 align-items-center">
+        <div class="col-md-6">
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <i class="bi bi-qr-code-scan fs-4 text-success"></i>
+            <h3 class="h5 fw-bold mb-0 text-success">Bag Verification Check-In</h3>
+          </div>
+          <p class="text-muted small mb-0">
+            Verify each physical bag presented at the dock. Enter or scan the <strong>Bag Tracking ID</strong> or <strong>UUID QR Token</strong> to mark as verified.
+          </p>
+        </div>
+        <div class="col-md-6">
+          <form method="post" action="{% url 'collection:collector_verify_bag' collection_req.reference_number %}" class="d-flex gap-2">
+            {% csrf_token %}
+            <input type="text" name="bag_identifier" class="form-control form-control-sm font-monospace" placeholder="e.g. MWC-BAG-20261111-XXXXXX or UUID" required>
+            <button type="submit" class="btn btn-sm btn-success rounded-pill px-4 fw-semibold text-nowrap">
+              <i class="bi bi-check2-circle me-1"></i> Verify Bag
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- Bag Manifest Table -->
+  <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white mb-4">
+    <div class="p-3 px-4 border-bottom d-flex justify-content-between align-items-center bg-light">
+      <div>
+        <h2 class="h6 fw-bold mb-0 text-dark">
+          Consignment Manifest ({{ collection_req.total_bags }} Bags &bull; {{ collection_req.total_weight }} KG)
+        </h2>
+        <div class="text-muted small" style="font-size: 0.72rem;">
+          Verified Bags: <strong>{{ verified_count }} / {{ collection_req.total_bags }}</strong> ({{ verification_percentage }}%)
+        </div>
+      </div>
+      <div>
+        <span class="badge bg-secondary-subtle text-dark border px-3 py-1 rounded-pill small">
+          Schedule I Segregation
+        </span>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead style="background-color: #EEF1EF; color: #071F1D; font-size: 0.78rem; text-transform: uppercase;">
+          <tr>
+            <th class="ps-4 py-3">Bag ID</th>
+            <th class="py-3">Category</th>
+            <th class="py-3">Scale Weight</th>
+            <th class="py-3">Ward &amp; Department</th>
+            <th class="py-3">Batch Number</th>
+            <th class="py-3">Custody Status</th>
+            <th class="py-3">QR Status</th>
+            <th class="text-end pe-4 py-3">Collector Verification</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in bags_with_verifications %}
+            <tr style="border-bottom: 1px solid #F0F2F1;">
+              <!-- Bag ID -->
+              <td class="ps-4">
+                <a href="{% url 'waste:bag_detail' item.bag.bag_id %}" target="_blank" class="font-monospace fw-bold text-decoration-none small" style="color: #005B50;">
+                  {{ item.bag.bag_id }}
+                </a>
+              </td>
+
+              <!-- Category -->
+              <td>
+                <span class="badge" style="background-color: {{ item.bag.category.display_color }}; color: #071F1D; font-size: 0.7rem; border: 1px solid rgba(0,0,0,0.12);">
+                  {{ item.bag.category.name }} ({{ item.bag.category.code }})
+                </span>
+              </td>
+
+              <!-- Weight -->
+              <td class="fw-bold text-dark small">
+                {{ item.bag.weight }} <span class="text-muted fw-normal" style="font-size: 0.7rem;">KG</span>
+              </td>
+
+              <!-- Location -->
+              <td class="small">
+                <div class="fw-semibold text-dark">{{ item.bag.ward }}</div>
+                <div class="text-muted" style="font-size: 0.7rem;">{{ item.bag.department }}</div>
+              </td>
+
+              <!-- Batch -->
+              <td class="small font-monospace text-muted">
+                {% if item.bag.batch %}
+                  <a href="{% url 'waste:batch_detail' item.bag.batch.batch_number %}" target="_blank" class="text-muted text-decoration-none">
+                    {{ item.bag.batch.batch_number|slice:"-6:" }}
+                  </a>
+                {% else %}
+                  &mdash;
+                {% endif %}
+              </td>
+
+              <!-- Bag Custody Status -->
+              <td>
+                <span class="badge bg-light text-dark border small" style="font-size: 0.7rem;">
+                  {{ item.bag.get_status_display }}
+                </span>
+              </td>
+
+              <!-- QR Status -->
+              <td>
+                <span class="badge {% if item.bag.qr_status == 'READY' %}bg-success-subtle text-success{% elif item.bag.qr_status == 'FAILED' %}bg-danger-subtle text-danger{% else %}bg-warning-subtle text-warning{% endif %}" style="font-size: 0.7rem;">
+                  <i class="bi bi-qr-code me-1"></i> {{ item.bag.get_qr_status_display }}
+                </span>
+              </td>
+
+              <!-- Verification Checkmark / Action -->
+              <td class="text-end pe-4">
+                {% if item.is_verified %}
+                  <span class="badge bg-success-subtle text-success border border-success px-2 py-1 small">
+                    <i class="bi bi-check-circle-fill me-1"></i> Verified
+                  </span>
+                  {% if item.verification.verified_at %}
+                    <div class="text-muted" style="font-size: 0.65rem;">{{ item.verification.verified_at|date:"H:i" }}</div>
+                  {% endif %}
+                {% else %}
+                  {% if is_collector and collection_req.status == 'PICKUP_IN_PROGRESS' %}
+                    <form method="post" action="{% url 'collection:collector_verify_bag' collection_req.reference_number %}" class="d-inline">
+                      {% csrf_token %}
+                      <input type="hidden" name="bag_identifier" value="{{ item.bag.bag_id }}">
+                      <button type="submit" class="btn btn-sm btn-outline-success rounded-pill px-2 py-1" style="font-size: 0.7rem;" title="Mark this bag verified">
+                        <i class="bi bi-check-lg me-1"></i> Check In
+                      </button>
+                    </form>
+                  {% else %}
+                    <span class="badge bg-secondary-subtle text-muted small fw-normal">Unverified</span>
+                  {% endif %}
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Immutable Status Audit Trail Section -->
+  <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4">
+    <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+      <h2 class="h6 fw-bold mb-0 text-dark">
+        <i class="bi bi-shield-check text-success me-1"></i> Immutable Lifecycle Audit Trail
+      </h2>
+      <span class="badge bg-light text-muted border small">Server Timestamped</span>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead class="small text-muted" style="font-size: 0.72rem; text-transform: uppercase;">
+          <tr>
+            <th>Timestamp</th>
+            <th>Previous State</th>
+            <th>New State</th>
+            <th>Responsible User</th>
+            <th>Operational Remarks</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for h in status_history %}
+            <tr style="font-size: 0.8rem;">
+              <td class="text-muted font-monospace">{{ h.timestamp|date:"d M Y, H:i:s" }}</td>
+              <td class="text-muted">
+                {% if h.previous_status %}
+                  <span class="badge bg-light text-secondary border">{{ h.previous_status }}</span>
+                {% else %}
+                  &mdash; Initial
+                {% endif %}
+              </td>
+              <td>
+                <span class="badge rounded-pill px-2 py-1 text-uppercase" style="font-size: 0.68rem; background-color: #EEF1EF; color: #005B50;">
+                  {{ h.new_status }}
+                </span>
+              </td>
+              <td>
+                {% if h.changed_by %}
+                  <strong>{{ h.changed_by.get_full_name|default:h.changed_by.username }}</strong>
+                  <span class="text-muted small">({{ h.changed_by.get_role_display }})</span>
+                {% else %}
+                  <span class="text-muted">System</span>
+                {% endif %}
+              </td>
+              <td class="text-dark">{{ h.remarks|default:"&mdash;" }}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="5" class="text-center py-3 text-muted small">No status changes recorded.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- Hospital Cancel Modal -->
+{% if is_hospital and collection_req.is_cancellable %}
+  <div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="cancelModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content rounded-4 border-0">
+        <form method="post" action="{% url 'collection:hospital_request_cancel' collection_req.reference_number %}">
+          {% csrf_token %}
+          <div class="modal-header border-bottom">
+            <h5 class="modal-title text-danger fw-bold" id="cancelModalLabel"><i class="bi bi-x-circle me-1"></i> Cancel Pickup Request</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p class="text-muted small">
+              Are you sure you want to cancel request <strong>{{ collection_req.reference_number }}</strong>? The {{ collection_req.total_bags }} bag(s) will be returned to your active inventory.
+            </p>
+            <div class="mb-3">
+              <label for="cancellation_reason" class="form-label text-dark small fw-semibold">Cancellation Reason (Optional)</label>
+              <textarea name="cancellation_reason" id="cancellation_reason" rows="2" class="form-control" placeholder="e.g. Rescheduling with internal ward staff..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer border-top">
+            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">Keep Request</button>
+            <button type="submit" class="btn btn-sm btn-danger rounded-pill px-4 fw-semibold">Confirm Cancellation</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+{% endif %}
+
+<!-- Collector Complete Collection Modal -->
+{% if is_collector and collection_req.status == 'PICKUP_IN_PROGRESS' %}
+  <div class="modal fade" id="completeCollectionModal" tabindex="-1" aria-labelledby="completeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content rounded-4 border-0">
+        <form method="post" action="{% url 'collection:collector_collect' collection_req.reference_number %}">
+          {% csrf_token %}
+          <div class="modal-header border-bottom">
+            <h5 class="modal-title fw-bold text-success" id="completeModalLabel">
+              <i class="bi bi-check-all me-1"></i> Finalize Waste Collection
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="p-3 rounded-3 mb-3" style="background-color: #ECFDF5;">
+              <div class="fw-bold text-success small mb-1">Custody Transfer Confirmation:</div>
+              <div class="small text-muted">
+                You are recording that all <strong>{{ collection_req.total_bags }} bags</strong> ({{ collection_req.total_weight }} KG) have been safely verified and loaded into your collection transport vehicle.
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="collector_handover_remarks" class="form-label text-dark small fw-semibold">Collection Remarks / Handover Notes</label>
+              <textarea name="remarks" id="collector_handover_remarks" rows="3" class="form-control" placeholder="e.g. Physical bags verified, scale gross weight confirmed at dock, vehicle seals intact."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer border-top">
+            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-sm btn-success rounded-pill px-4 fw-semibold shadow-sm">
+              <i class="bi bi-box-arrow-in-right me-1"></i> Confirm &amp; Sign Custody
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+{% endif %}
+
+{% endblock %}
+

@@ -1,0 +1,161 @@
+{% extends "dashboard_base.html" %}
+
+{% block dashboard_content %}
+<div class="container-fluid py-4 px-3 px-md-4">
+  <!-- Header -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <a href="{% url 'dashboard_admin' %}" class="text-decoration-none text-muted small">&larr; Directorate Overview</a>
+      </div>
+      <h2 class="h3 fw-bold mb-0 text-dark">User Account Management</h2>
+      <p class="text-muted small mb-0">Role-governed directory of all authenticated stakeholders, status administration, and access lifecycle.</p>
+    </div>
+    <div class="d-flex gap-2">
+      <span class="badge bg-light text-dark border px-3 py-2 rounded-pill fs-6">
+        Total Users: <strong>{{ total_count }}</strong>
+      </span>
+    </div>
+  </div>
+
+  <!-- Search & Filter Controls -->
+  <div class="card border-0 shadow-sm rounded-3 mb-4 p-3" style="background-color: #FFFFFF;">
+    <form method="get" class="row g-2 align-items-center">
+      <div class="col-md-5">
+        <div class="input-group">
+          <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+          <input type="text" name="q" value="{{ search_q }}" class="form-control bg-light border-start-0" placeholder="Search by name, username, email, organization, or phone...">
+        </div>
+      </div>
+      <div class="col-md-3">
+        <select name="role" class="form-select bg-light">
+          <option value="">All Roles</option>
+          {% for code, label in role_choices %}
+            <option value="{{ code }}" {% if role_filter == code %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <select name="status" class="form-select bg-light">
+          <option value="">All Statuses</option>
+          <option value="ACTIVE" {% if status_filter == 'ACTIVE' %}selected{% endif %}>Active</option>
+          <option value="SUSPENDED" {% if status_filter == 'SUSPENDED' %}selected{% endif %}>Suspended</option>
+          <option value="INACTIVE" {% if status_filter == 'INACTIVE' %}selected{% endif %}>Inactive</option>
+          <option value="PENDING" {% if status_filter == 'PENDING' %}selected{% endif %}>Pending Approval</option>
+        </select>
+      </div>
+      <div class="col-md-2 d-flex gap-2">
+        <button type="submit" class="btn btn-dark w-100 rounded-pill">Filter</button>
+        {% if search_q or role_filter or status_filter %}
+          <a href="{% url 'admin_user_list' %}" class="btn btn-outline-secondary rounded-pill" title="Reset Filters"><i class="bi bi-x-circle"></i></a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+
+  <!-- Users Table -->
+  <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light small text-uppercase text-muted">
+          <tr>
+            <th class="ps-4">User</th>
+            <th>Role</th>
+            <th>Organization</th>
+            <th>Contact Details</th>
+            <th>Account Status</th>
+            <th>Joined</th>
+            <th>Last Login</th>
+            <th class="text-end pe-4">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="small">
+          {% for u in page_obj %}
+            <tr>
+              <td class="ps-4">
+                <div class="d-flex align-items-center gap-2">
+                  <div class="rounded-circle text-white fw-bold d-flex align-items-center justify-content-center" style="width: 34px; height: 34px; background-color: var(--teal-deep, #005B50); font-size: 0.82rem;">
+                    {{ u.first_name|default:u.username|slice:":1"|upper }}
+                  </div>
+                  <div>
+                    <div class="fw-bold text-dark">{{ u.get_full_name|default:u.username }}</div>
+                    <div class="text-muted" style="font-size: 0.72rem;">@{{ u.username }}</div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="badge badge-role badge-role-{{ u.role|lower }} text-uppercase">
+                  {{ u.get_role_display }}
+                </span>
+              </td>
+              <td>
+                {% if u.organization_name %}
+                  <span class="fw-semibold text-dark">{{ u.organization_name }}</span>
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+              <td>
+                <div>{{ u.email|default:"No email" }}</div>
+                {% if u.phone %}<div class="text-muted" style="font-size: 0.72rem;"><i class="bi bi-telephone"></i> {{ u.phone }}</div>{% endif %}
+              </td>
+              <td>
+                {% if u.account_status == 'ACTIVE' and u.is_active %}
+                  <span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle me-1"></i> Active</span>
+                {% elif u.account_status == 'SUSPENDED' %}
+                  <span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-slash-circle me-1"></i> Suspended</span>
+                {% elif u.account_status == 'PENDING_APPROVAL' %}
+                  <span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split me-1"></i> Pending Approval</span>
+                {% else %}
+                  <span class="badge bg-secondary-subtle text-secondary border"><i class="bi bi-dash-circle me-1"></i> Inactive</span>
+                {% endif %}
+              </td>
+              <td class="text-muted">{{ u.date_joined|date:"d M Y" }}</td>
+              <td class="text-muted">{{ u.last_login|date:"d M, H:i"|default:"Never" }}</td>
+              <td class="text-end pe-4">
+                <a href="{% url 'admin_user_detail' u.id %}" class="btn btn-sm btn-outline-dark rounded-pill px-3">
+                  Inspect &rarr;
+                </a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="8" class="text-center py-5 text-muted">
+                <i class="bi bi-people text-secondary fs-3 d-block mb-2"></i>
+                No user accounts found matching your filter criteria.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+      <div class="card-footer bg-white border-top py-3 px-4 d-flex justify-content-between align-items-center">
+        <div class="small text-muted">
+          Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} users
+        </div>
+        <nav>
+          <ul class="pagination pagination-sm mb-0">
+            {% if page_obj.has_previous %}
+              <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ search_q }}&role={{ role_filter }}&status={{ status_filter }}">Previous</a>
+              </li>
+            {% endif %}
+            <li class="page-item active">
+              <span class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+            </li>
+            {% if page_obj.has_next %}
+              <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ search_q }}&role={{ role_filter }}&status={{ status_filter }}">Next</a>
+              </li>
+            {% endif %}
+          </ul>
+        </nav>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+

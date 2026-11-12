@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}404 Not Found — Resource Unavailable — {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<section class="py-5 d-flex align-items-center" style="background-color: var(--cream, #F7F7F5); min-height: 75vh;">
+  <div class="container text-center" style="max-width: 620px;">
+    <!-- Icon Container -->
+    <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-4 shadow-sm" style="width: 80px; height: 80px; background-color: rgba(0, 91, 80, 0.12); color: #005B50; font-size: 2.2rem;">
+      <i class="bi bi-search"></i>
+    </div>
+
+    <!-- Error Code & Title -->
+    <span class="badge text-uppercase px-3 py-1 mb-2 font-monospace fw-bold" style="background-color: #071F1D; color: #FFFFFF; font-size: 0.75rem; letter-spacing: 0.08em;">
+      HTTP 404 Not Found
+    </span>
+    <h1 class="h2 fw-bold mb-3" style="color: #071F1D;">Page or Record Not Found</h1>
+    
+    <!-- User-Friendly Explanation -->
+    <p class="text-muted mb-4" style="font-size: 0.95rem; line-height: 1.6;">
+      The requested URL, waste consignment, tracking identifier, or document could not be located in the MedWaste Connect registry. It may have been moved, deleted, or mistyped.
+    </p>
+
+    <!-- Context Guidance Box -->
+    <div class="p-3 rounded-3 mb-4 text-start small border" style="background-color: #FFFFFF; border-color: rgba(0, 91, 80, 0.15) !important;">
+      <div class="fw-semibold text-dark mb-1"><i class="bi bi-shield-check me-1" style="color: #005B50;"></i> Verifying a Waste QR Code?</div>
+      <p class="text-muted mb-0">
+        If you are attempting to verify a physical biohazard bag QR tag, ensure the full URL or camera scan was completed without character truncation.
+      </p>
+    </div>
+
+    <!-- Actions -->
+    <div class="d-flex flex-wrap justify-content-center gap-2">
+      <a href="/" class="btn btn-sm btn-outline-dark rounded-pill px-4 py-2">
+        <i class="bi bi-house me-1"></i> Public Homepage
+      </a>
+      {% if user.is_authenticated %}
+        <a href="{% url 'dashboard_redirect' %}" class="btn btn-sm text-white rounded-pill px-4 py-2" style="background-color: #005B50;">
+          <i class="bi bi-speedometer2 me-1"></i> Return to Dashboard
+        </a>
+      {% else %}
+        <a href="{% url 'login' %}" class="btn btn-sm text-white rounded-pill px-4 py-2" style="background-color: #005B50;">
+          <i class="bi bi-box-arrow-in-right me-1"></i> Sign In to Portal
+        </a>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}
+

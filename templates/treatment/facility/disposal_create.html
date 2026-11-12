@@ -1,0 +1,121 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}Document Final Disposal — {{ batch.batch_number }} — {{ SITE_NAME }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="container-fluid py-2" style="max-width: 900px;">
+  <!-- Header -->
+  <div class="mb-4">
+    <a href="{% url 'treatment:treatment_batch_detail' batch.batch_number %}" class="btn btn-sm btn-outline-secondary rounded-pill mb-2">
+      <i class="bi bi-arrow-left me-1"></i> Back to Batch Details
+    </a>
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <span class="badge rounded-pill text-white" style="background-color: var(--teal-deep);">
+        Final Disposal Filing
+      </span>
+      <span class="badge bg-light text-muted border font-monospace">
+        {{ batch.batch_number }}
+      </span>
+    </div>
+    <h1 class="h3 fw-bold mb-0 text-dark">
+      Document Final Residue Disposal
+    </h1>
+    <p class="text-muted small mb-0">
+      Record statutory handover of treated residue to licensed hazardous landfills or recycling partners.
+    </p>
+  </div>
+
+  <!-- Messages Feedback -->
+  {% if messages %}
+    <div class="mb-4">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show rounded-3 shadow-sm" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <!-- Batch Summary Card -->
+  <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <span class="text-muted small text-uppercase fw-semibold" style="font-size: 0.68rem;">Treatment Run</span>
+        <div class="h5 fw-bold text-dark mb-1">{{ batch.get_treatment_method_display }}</div>
+        <div class="small text-muted">{{ batch.bags.count }} bags &bull; {{ batch.processing_weight }} KG processed</div>
+      </div>
+      <div class="col-md-6">
+        <span class="text-muted small text-uppercase fw-semibold" style="font-size: 0.68rem;">Treatment Concluded</span>
+        <div class="fw-bold text-dark">{{ batch.end_time|date:"d M Y, H:i" }}</div>
+        <div class="small text-muted">Operator: {{ batch.operator.username }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Disposal Documentation Form Card -->
+  <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white mb-4">
+    <form method="post" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger rounded-3 mb-4">
+          {% for err in form.non_field_errors %}
+            <div><i class="bi bi-exclamation-triangle-fill me-1"></i> {{ err }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <div class="row g-3 mb-4">
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold text-muted">Final Statutory Disposal Method <span class="text-danger">*</span></label>
+          {{ form.final_disposal_method }}
+          {% if form.final_disposal_method.errors %}
+            <div class="text-danger small mt-1">{{ form.final_disposal_method.errors.0 }}</div>
+          {% endif %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold text-muted">Authorized Disposal Site / Location <span class="text-danger">*</span></label>
+          {{ form.disposal_location }}
+          {% if form.disposal_location.errors %}
+            <div class="text-danger small mt-1">{{ form.disposal_location.errors.0 }}</div>
+          {% endif %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold text-muted">Disposal Date <span class="text-danger">*</span></label>
+          {{ form.disposal_date }}
+          {% if form.disposal_date.errors %}
+            <div class="text-danger small mt-1">{{ form.disposal_date.errors.0 }}</div>
+          {% endif %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold text-muted">Disposal Time <span class="text-danger">*</span></label>
+          {{ form.disposal_time }}
+          {% if form.disposal_time.errors %}
+            <div class="text-danger small mt-1">{{ form.disposal_time.errors.0 }}</div>
+          {% endif %}
+        </div>
+        <div class="col-12">
+          <label class="form-label small fw-semibold text-muted">Supporting Document / Landfill Weighment Slip</label>
+          {{ form.supporting_document }}
+          <div class="form-text small">Attach PDF or scan of signed weighment manifest or landfill reception receipt.</div>
+        </div>
+        <div class="col-12">
+          <label class="form-label small fw-semibold text-muted">Remarks &amp; Audit Notes</label>
+          {{ form.remarks }}
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+        <a href="{% url 'treatment:treatment_batch_detail' batch.batch_number %}" class="btn btn-outline-secondary rounded-pill px-4">
+          Cancel
+        </a>
+        <button type="submit" class="btn text-white rounded-pill px-4 fw-semibold" style="background-color: #005B50;">
+          <i class="bi bi-check-circle me-1"></i> Submit Disposal Documentation
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+

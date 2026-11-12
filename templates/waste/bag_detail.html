@@ -1,0 +1,190 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}Bag {{ bag.bag_id }} — {{ SITE_NAME }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="container-fluid py-3 px-md-4">
+
+  <!-- Breadcrumbs -->
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb mb-0" style="font-size: 0.85rem;">
+      <li class="breadcrumb-item"><a href="{% url 'dashboard_redirect' %}" class="text-decoration-none text-muted">Dashboard</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'waste:inventory' %}" class="text-decoration-none text-muted">Waste Inventory</a></li>
+      {% if bag.batch %}
+        <li class="breadcrumb-item"><a href="{% url 'waste:batch_detail' bag.batch.batch_number %}" class="text-decoration-none text-muted">Batch {{ bag.batch.batch_number }}</a></li>
+      {% endif %}
+      <li class="breadcrumb-item active fw-semibold" style="color: var(--teal-deep);" aria-current="page">{{ bag.bag_id }}</li>
+    </ol>
+  </nav>
+
+  <!-- Messages Feedback -->
+  {% if messages %}
+    <div class="mb-3">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show rounded-3 shadow-sm" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <!-- Bag Header Card -->
+  <div class="card border-0 shadow-sm rounded-4 p-4 mb-4" style="background-color: #FFFFFF; border-top: 6px solid {{ bag.category.display_color }} !important;">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+      <div>
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <span class="badge text-uppercase px-2 py-1" style="background-color: {{ bag.category.display_color }}; color: {% if bag.category.code == 'YELLOW' or bag.category.code == 'WHITE' %}#071F1D{% else %}#FFFFFF{% endif %}; font-weight: 700; font-size: 0.8rem; border: 1px solid rgba(0,0,0,0.1);">
+            {{ bag.category.name }} ({{ bag.category.code }})
+          </span>
+          <span class="badge bg-success-subtle text-success fw-semibold">
+            <i class="bi bi-shield-check me-1"></i> {{ bag.get_status_display }}
+          </span>
+          <span class="badge {% if bag.qr_status == 'READY' %}bg-primary-subtle text-primary{% elif bag.qr_status == 'FAILED' %}bg-danger-subtle text-danger{% else %}bg-warning-subtle text-warning{% endif %} fw-semibold">
+            <i class="bi bi-qr-code me-1"></i> QR: {{ bag.get_qr_status_display }}
+          </span>
+        </div>
+        <h1 class="h3 fw-bold mb-1 font-monospace" style="color: #071F1D;">{{ bag.bag_id }}</h1>
+        <p class="text-muted small mb-0">
+          Permanent physical biohazard bag identifier. Logged on {{ bag.registered_at|date:"d M Y, h:i A" }}.
+        </p>
+      </div>
+
+      <div class="d-flex flex-column flex-sm-row align-items-sm-center gap-3">
+        <div class="p-3 rounded-3 text-center text-sm-end" style="background-color: #EEF1EF;">
+          <div class="text-muted small text-uppercase fw-semibold" style="font-size: 0.7rem;">Net Bag Weight</div>
+          <div class="h2 fw-bold mb-0" style="color: #F36B21;">{{ bag.weight }} <span class="fs-5 text-muted">KG</span></div>
+        </div>
+
+        <div class="d-flex flex-column gap-2">
+          <a href="{% url 'waste:bag_label' bag.bag_id %}" target="_blank" class="btn text-white rounded-pill px-3 shadow-sm btn-sm fw-semibold" style="background-color: #005B50;">
+            <i class="bi bi-printer-fill me-1"></i> Print Thermal Label
+          </a>
+          <a href="{% url 'waste:qr_download' bag.bag_id %}" class="btn btn-outline-secondary rounded-pill px-3 btn-sm">
+            <i class="bi bi-download me-1"></i> Download QR PNG
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detail Information Grid -->
+  <div class="row g-4 mb-4">
+    <!-- Left Column: Origin & Provenance -->
+    <div class="col-lg-6">
+      <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+        <h2 class="h5 fw-bold mb-3 d-flex align-items-center gap-2" style="color: #005B50;">
+          <i class="bi bi-geo-alt"></i> Origin &amp; Provenance
+        </h2>
+
+        <dl class="row mb-0 small">
+          <dt class="col-sm-4 text-muted">Hospital Facility</dt>
+          <dd class="col-sm-8 fw-semibold text-dark">{{ bag.hospital.organization_name|default:bag.hospital.username }}</dd>
+
+          <dt class="col-sm-4 text-muted">Registered By Staff</dt>
+          <dd class="col-sm-8 text-dark">{{ bag.registered_by.get_full_name|default:bag.registered_by.username }}</dd>
+
+          <dt class="col-sm-4 text-muted">Hospital Ward</dt>
+          <dd class="col-sm-8 text-dark fw-semibold">{{ bag.ward }}</dd>
+
+          <dt class="col-sm-4 text-muted">Department</dt>
+          <dd class="col-sm-8 text-dark">{{ bag.department }}</dd>
+
+          <dt class="col-sm-4 text-muted">Registration Batch</dt>
+          <dd class="col-sm-8">
+            {% if bag.batch %}
+              <a href="{% url 'waste:batch_detail' bag.batch.batch_number %}" class="font-monospace fw-semibold text-decoration-none" style="color: #005B50;">
+                {{ bag.batch.batch_number }}
+              </a>
+            {% else %}
+              <span class="text-muted">Independent submission</span>
+            {% endif %}
+          </dd>
+
+          <dt class="col-sm-4 text-muted">Logged Timestamp</dt>
+          <dd class="col-sm-8 text-muted">{{ bag.registered_at|date:"l, d F Y, h:i:s A" }}</dd>
+
+          <dt class="col-sm-4 text-muted">Last Updated</dt>
+          <dd class="col-sm-8 text-muted">{{ bag.updated_at|date:"d M Y, h:i A" }}</dd>
+        </dl>
+      </div>
+    </div>
+
+    <!-- Right Column: Dynamic QR Identification & Treatment -->
+    <div class="col-lg-6">
+      <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100 d-flex flex-column">
+        <h2 class="h5 fw-bold mb-3 d-flex align-items-center gap-2" style="color: #005B50;">
+          <i class="bi bi-qr-code-scan"></i> Dynamic QR Identification
+        </h2>
+
+        <!-- Active QR Code Section -->
+        <div class="p-3 rounded-3 mb-3 d-flex flex-column flex-sm-row align-items-center gap-3" style="background-color: #F7F7F5; border: 1px solid #E5E7EB;">
+          <div class="bg-white p-2 rounded-2 border shadow-sm flex-shrink-0" style="width: 130px; height: 130px;">
+            {% if bag.qr_image %}
+              <img src="{{ bag.qr_image.url }}" alt="QR Code for {{ bag.bag_id }}" class="img-fluid" style="image-rendering: pixelated; width: 100%; height: 100%;">
+            {% else %}
+              <div class="d-flex flex-column align-items-center justify-content-center h-100 text-danger text-center p-2">
+                <i class="bi bi-exclamation-triangle fs-3"></i>
+                <span style="font-size: 0.7rem;">QR Image Unavailable</span>
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="flex-grow-1 small">
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <span class="badge {% if bag.qr_status == 'READY' %}bg-success{% elif bag.qr_status == 'FAILED' %}bg-danger{% else %}bg-warning text-dark{% endif %}" style="font-size: 0.72rem;">
+                Status: {{ bag.get_qr_status_display }}
+              </span>
+              <span class="text-muted" style="font-size: 0.72rem;">EC Level M</span>
+            </div>
+
+            <div class="text-muted mb-1" style="font-size: 0.72rem;">
+              Cryptographic Token:
+              <br><code class="text-dark fw-bold">{{ bag.qr_token }}</code>
+            </div>
+
+            <div class="d-flex flex-wrap gap-2 mt-2">
+              <a href="{{ tracking_url }}" target="_blank" class="btn btn-xs btn-outline-primary rounded-pill px-2 py-1" style="font-size: 0.75rem;">
+                <i class="bi bi-box-arrow-up-right me-1"></i> Public Tracking Preview
+              </a>
+
+              <form method="post" action="{% url 'waste:qr_regenerate' bag.bag_id %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-xs btn-outline-secondary rounded-pill px-2 py-1" style="font-size: 0.75rem;" title="Force regenerate QR image">
+                  <i class="bi bi-arrow-repeat me-1"></i> Regenerate
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- Statutory Packaging & Disposal Guidance -->
+        <div class="mb-2 p-2 px-3 rounded-2" style="background-color: #EEF1EF; border-left: 4px solid {{ bag.category.display_color }}; font-size: 0.8rem;">
+          <strong>Container:</strong> {{ bag.category.container_type }}
+        </div>
+
+        <div class="p-2 px-3 rounded-2 mt-auto" style="background-color: #EEF1EF; border-left: 4px solid #005B50; font-size: 0.8rem;">
+          <strong>Statutory Disposal:</strong> {{ bag.category.treatment_description }}
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Action Bar -->
+  <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+    <a href="{% url 'waste:inventory' %}" class="btn btn-outline-secondary rounded-pill px-4">
+      <i class="bi bi-arrow-left me-1"></i> Return to Inventory
+    </a>
+    <div class="d-flex gap-2">
+      <a href="{% url 'tracking:bag_tracking_detail' bag.bag_id %}" class="btn btn-outline-primary rounded-pill px-3 shadow-sm fw-semibold">
+        <i class="bi bi-clock-history me-1"></i> Custody Journey
+      </a>
+      <a href="{% url 'waste:bag_label' bag.bag_id %}" target="_blank" class="btn text-white rounded-pill px-4 shadow-sm" style="background-color: #005B50;">
+        <i class="bi bi-printer-fill me-1"></i> Print Label
+      </a>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

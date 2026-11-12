@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+
+{% block site_navbar %}{% endblock %}
+
+{% block content %}
+<div class="dashboard-container d-flex flex-column">
+  <!-- Dashboard Top Navigation Bar -->
+  <header class="navbar navbar-expand border-bottom sticky-top py-2 px-3 px-md-4 dashboard-portal-header" style="background-color: var(--white); box-shadow: var(--shadow-sm); z-index: 1020;">
+    <div class="d-flex align-items-center gap-2 gap-sm-3">
+      <button class="btn btn-sm btn-outline-secondary d-md-none" type="button" data-bs-toggle="collapse" data-bs-target="#dashboardSidebarNav" aria-controls="dashboardSidebarNav" aria-expanded="false" aria-label="Toggle dashboard menu">
+        <i class="bi bi-list fs-5"></i>
+      </button>
+      <a href="{% url 'home' %}" class="text-decoration-none d-flex align-items-center gap-2 fw-bold" style="color: var(--primary-dark);">
+        <span class="d-inline-flex align-items-center justify-content-center rounded-3 text-white" style="width: 30px; height: 30px; background-color: var(--teal-deep); font-size: 0.9rem;">
+          <i class="bi bi-shield-plus"></i>
+        </span>
+        <span class="d-none d-sm-inline">{{ SITE_NAME|default:"MedWaste" }}</span>
+      </a>
+      <span class="text-muted d-none d-sm-inline">|</span>
+      <div class="d-flex align-items-center gap-2">
+        <span class="badge badge-role badge-role-{{ user.role|lower }} text-uppercase">
+          <i class="bi bi-person-badge me-1"></i> {{ user.get_role_display }}
+        </span>
+        <span class="text-muted d-none d-sm-inline" style="font-size: 0.85rem;">Portal</span>
+      </div>
+    </div>
+
+    <div class="ms-auto d-flex align-items-center gap-3">
+      <!-- Notification Dropdown -->
+      <div class="dropdown">
+        <button class="btn btn-light rounded-circle position-relative p-2" type="button" id="notifDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Notifications">
+          <i class="bi bi-bell text-secondary fs-6"></i>
+          {% if unread_notifications_count > 0 %}
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light" style="font-size: 0.6rem;">
+              {{ unread_notifications_count }}
+            </span>
+          {% endif %}
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3 mt-2" aria-labelledby="notifDropdown" style="width: 320px;">
+          <li class="dropdown-header fw-bold text-dark d-flex justify-content-between align-items-center">
+            <span>Notifications</span>
+            {% if unread_notifications_count > 0 %}
+              <span class="badge bg-danger-subtle text-danger" style="font-size: 0.7rem;">{{ unread_notifications_count }} unread</span>
+            {% else %}
+              <span class="badge bg-secondary-subtle text-muted" style="font-size: 0.7rem;">Up to date</span>
+            {% endif %}
+          </li>
+          <li><hr class="dropdown-divider my-1"></li>
+          {% for n in recent_notifications %}
+            <li class="px-3 py-2 border-bottom">
+              <a href="{{ n.link|default:'/notifications/' }}" class="text-decoration-none d-block">
+                <div class="fw-semibold text-dark small text-truncate">{{ n.title }}</div>
+                <div class="text-muted text-truncate" style="font-size: 0.72rem;">{{ n.message }}</div>
+                <div class="text-muted" style="font-size: 0.65rem;">{{ n.created_at|date:"d M, H:i" }}</div>
+              </a>
+            </li>
+          {% empty %}
+            <li class="px-3 py-3 small text-muted text-center">
+              <i class="bi bi-bell-slash me-1"></i> No recent notifications
+            </li>
+          {% endfor %}
+          <li class="text-center pt-2">
+            <a href="{% url 'notifications:list' %}" class="small text-decoration-none fw-semibold" style="color: #005B50;">
+              View All Notifications &rarr;
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <!-- User Profile Dropdown -->
+      <div class="dropdown">
+        <button class="btn btn-sm btn-light border-0 d-flex align-items-center gap-2 py-1 px-2 rounded-pill" type="button" id="dashboardUserMenu" data-bs-toggle="dropdown" aria-expanded="false">
+          <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold" style="width: 32px; height: 32px; background-color: var(--teal-deep); font-size: 0.82rem;">
+            {{ user.first_name|default:user.username|slice:":1"|upper }}
+          </div>
+          <span class="d-none d-md-inline small fw-semibold text-dark">
+            {{ user.first_name|default:user.username }}
+          </span>
+          <i class="bi bi-chevron-down text-muted small"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3 mt-2" aria-labelledby="dashboardUserMenu">
+          <li class="px-3 py-2 border-bottom">
+            <div class="fw-bold small text-dark">{{ user.get_full_name|default:user.username }}</div>
+            <div class="text-muted" style="font-size: 0.75rem;">{{ user.email|default:"No email set" }}</div>
+            {% if user.organization_name %}
+              <div class="badge bg-light text-dark border mt-1" style="font-size: 0.7rem;">
+                <i class="bi bi-building me-1"></i> {{ user.organization_name }}
+              </div>
+            {% endif %}
+          </li>
+          <li>
+            <a class="dropdown-item py-2 small" href="{% url 'home' %}">
+              <i class="bi bi-house me-2 text-muted"></i> Public Homepage
+            </a>
+          </li>
+          <li><hr class="dropdown-divider"></li>
+          <li>
+            <form method="post" action="{% url 'logout' %}">
+              {% csrf_token %}
+              <button type="submit" class="dropdown-item py-2 text-danger small border-0 bg-transparent w-100 text-start">
+                <i class="bi bi-box-arrow-right me-2"></i> Sign Out
+              </button>
+            </form>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </header>
+
+  <!-- Body with Sidebar and Main Content -->
+  <div class="row g-0 flex-grow-1">
+    <!-- Responsive Sidebar -->
+    <aside class="col-md-3 col-lg-2 dashboard-sidebar collapse d-md-flex flex-column justify-content-between" id="dashboardSidebarNav">
+      <div>
+        <!-- Organization / User Summary -->
+        <div class="px-3 py-3 border-bottom border-secondary mb-3">
+          <div class="text-white-50 small text-uppercase fw-bold" style="font-size: 0.7rem; letter-spacing: 0.05em;">
+            Workspace
+          </div>
+          <div class="fw-bold text-white text-truncate mt-1">
+            {{ user.organization_name|default:user.username }}
+          </div>
+          <span class="badge badge-role badge-role-{{ user.role|lower }} text-uppercase mt-2" style="font-size: 0.7rem;">
+            {{ user.get_role_display }}
+          </span>
+        </div>
+
+        <!-- Role-Specific Navigation Menu -->
+        <nav class="nav flex-column px-2">
+          <a class="nav-link {% if request.resolver_match.url_name == 'dashboard_redirect' or request.resolver_match.url_name == 'dashboard_hospital' or request.resolver_match.url_name == 'dashboard_admin' or request.resolver_match.url_name == 'dashboard_collector' or request.resolver_match.url_name == 'dashboard_facility' %}active{% endif %}" href="{% url 'dashboard_redirect' %}">
+            <i class="bi bi-speedometer2"></i> Dashboard Overview
+          </a>
+
+          {% if user.role == 'HOSPITAL' %}
+            <div class="text-white-50 px-3 pt-3 pb-1 text-uppercase fw-bold" style="font-size: 0.65rem;">Waste Operations</div>
+            <a class="nav-link {% if request.resolver_match.app_name == 'waste' and request.resolver_match.url_name == 'inventory' %}active{% endif %}" href="{% url 'waste:inventory' %}">
+              <i class="bi bi-trash"></i> Waste Inventory
+            </a>
+            <a class="nav-link {% if request.resolver_match.app_name == 'waste' and request.resolver_match.url_name == 'register' %}active{% endif %}" href="{% url 'waste:register' %}">
+              <i class="bi bi-plus-circle"></i> Log Waste Bags
+            </a>
+            <a class="nav-link {% if request.resolver_match.app_name == 'collection' and request.resolver_match.url_name == 'hospital_request_list' %}active{% endif %}" href="{% url 'collection:hospital_request_list' %}">
+              <i class="bi bi-calendar-check"></i> Pickup Requests
+            </a>
+            <a class="nav-link {% if request.resolver_match.app_name == 'collection' and request.resolver_match.url_name == 'hospital_request_create' %}active{% endif %}" href="{% url 'collection:hospital_request_create' %}">
+              <i class="bi bi-plus-square"></i> New Request
+            </a>
+            <div class="text-white-50 px-3 pt-3 pb-1 text-uppercase fw-bold" style="font-size: 0.65rem;">Tracking &amp; Audits</div>
+            <a class="nav-link {% if request.resolver_match.app_name == 'tracking' and request.resolver_match.url_name == 'tracking_dashboard' %}active{% endif %}" href="{% url 'tracking:tracking_dashboard' %}">
+              <i class="bi bi-shield-check"></i> Custody Tracking
+            </a>
+            <a class="nav-link {% if request.resolver_match.app_name == 'tracking' and request.resolver_match.url_name == 'discrepancy_list' %}active{% endif %}" href="{% url 'tracking:discrepancy_list' %}">
+              <i class="bi bi-exclamation-octagon"></i> Discrepancies
+            </a>
+            <div class="text-white-50 px-3 pt-3 pb-1 text-uppercase fw-bold" style="font-size: 0.65rem;">Analytics &amp; Compliance</div>
+            <a class="nav-link {% if request.resolver_match.app_name == 'reports' and request.resolver_match.url_name == 'hospital_analytics' %}active{% endif %}" href="{% url 'reports:hospital_analytics' %}">
+              <i class="bi bi-graph-up"></i> Waste Analytics
+            </a>
+            <a class="nav-link {% if request.resolver_match.app_name == 'reports' and request.resolver_match.url_name == 'compliance_monitor' %}active{% endif %}" href="{% url 'reports:compliance_monitor' %}">
+              <i class="bi bi-clipboard-check"></i> Compliance Audit
+            </a>
+            <a class="nav-link {% if request.resolver_match.app_name == 'reports' and request.resolver_match.url_name == 'regulatory_reports' %}active{% endif %}" href="{% url 'reports:regulatory_reports' %}">
+              <i class="bi bi-file-earmark-medical"></i> Statutory Reports
+            </a>
+
+          {% elif user.role == 'COLLECTOR' %}
+            <div class="text-white-50 px-3 pt-3 pb-1 text-uppercase fw-bold" style="font-size: 0.65rem;">Logistics</div>
+            <a class="nav-link {% if request.resolver_match.app_name == 'collection' and request.resolver_match.url_name == 'collector_dashboard' %}active{% endif %}" href="{% url 'collection:collector_dashboard' %}">
+              <i class="bi bi-truck"></i> Assigned Pickups
+            </a>
+            <a class="nav-link {% if request.resolver_match.app_name == 'tracking' and request.resolver_match.url_name == 'tracking_dashboard' %}active{% endif %}" href="{% url 'tracking:tracking_dashboard' %}">
+              <i class="bi bi-geo-alt"></i> Custody Transit
+            </a>
+            <a class="nav-link {% if request.resolver_match.app_name == 'tracking' and request.resolver_match.url_name == 'discrepancy_list' %}active{% endif %}" href="{% url 'tracking:discrepancy_list' %}">
+              <i class="bi bi-exclamation-triangle"></i> Exceptions
+            </a>
+            <div class="text-white-50 px-3 pt-3 pb-1 text-uppercase fw-bold" style="font-size: 0.65rem;">Performance &amp; Compliance</div>
+            <a class="nav-link {% if request.resolver_match.app_name == 'reports' and request.resolver_match.url_name == 'collector_analytics' %}active{% endif %}" href="{% url 'reports:collector_analytics' %}">
+              <i class="bi bi-speedometer2"></i> Route Analytics
+            </a>
+            <a class="nav-link {% if request.resolver_match.app_name == 'reports' and request.resolver_match.url_name == 'compliance_monitor' %}active{% endif %}" href="{% url 'reports:compliance_monitor' %}">
+              <i class="bi bi-clipboard-check"></i> Transit Compliance
+            </a>
+
+          {% elif user.role == 'FACILITY' %}
+            <div class="text-white-50 px-3 pt-3 pb-1 text-uppercase fw-bold" style="font-size: 0.65rem;">Treatment Plant</div>
+            <a class="nav-link {% if request.resolver_match.app_name == 'treatment' and request.resolver_match.url_name == 'facility_dashboard' %}active{% endif %}" href="{% url 'treatment:facility_dashboard' %}">
+              <i class="bi bi-speedometer"></i> Plant Console
+            </a>
+            <a class="nav-link {% if request.resolver_match.app_name == 'treatment' and request.resolver_match.url_name in 'facility_incoming_manifests,facility_receive_consignment,facility_reception_detail' %}active{% endif %}" href="{% url 'treatment:facility_incoming_manifests' %}">
+              <i class="bi bi-box-arrow-in-down"></i> Inbound Shipments
+            </a>
+            <a class="nav-link {% if request.resolver_match.app_name == 'treatment' and request.resolver_match.url_name in 'treatment_batch_list,treatment_batch_create,treatment_batch_detail' %}active{% endif %}" href="{% url 'treatment:treatment_batch_list' %}">
+              <i class="bi bi-fire"></i> Treatment Logs
+            </a>
+            <a class="nav-link {% if request.resolver_match.app_name == 'treatment' and request.resolver_match.url_name in 'disposal_record_list,disposal_record_create,disposal_record_detail' %}active{% endif %}" href="{% url 'treatment:disposal_record_list' %}">
+              <i class="bi bi-award"></i> Final Disposals
+            </a>
+            <div class="text-white-50 px-3 pt-3 pb-1 text-uppercase fw-bold" style="font-size: 0.65rem;">Compliance</div>
+            <a class="nav-link {% if request.resolver_match.app_name == 'tracking' and request.resolver_match.url_name == 'tracking_dashboard' %}active{% endif %}" href="{% url 'tracking:tracking_dashboard' %}">
+              <i class="bi bi-shield-check"></i> Custody Ledger
+            </a>
+            <a class="nav-link {% if request.resolver_match.app_name == 'tracking' and request.resolver_match.url_name == 'discrepancy_list' %}active{% endif %}" href="{% url 'tracking:discrepancy_list' %}">
+              <i class="bi bi-exclamation-octagon"></i> Discrepancy Alerts
+            </a>
+            <div class="text-white-50 px-3 pt-3 pb-1 text-uppercase fw-bold" style="font-size: 0.65rem;">Analytics &amp; Compliance</div>
+            <a class="nav-link {% if request.resolver_match.app_name == 'reports' and request.resolver_match.url_name == 'facility_analytics' %}active{% endif %}" href="{% url 'reports:facility_analytics' %}">
+              <i class="bi bi-graph-up-arrow"></i> Plant Analytics
+            </a>
+            <a class="nav-link {% if request.resolver_match.app_name == 'reports' and request.resolver_match.url_name == 'compliance_monitor' %}active{% endif %}" href="{% url 'reports:compliance_monitor' %}">
+              <i class="bi bi-clipboard-check"></i> Facility Compliance
+            </a>
+            <a class="nav-link {% if request.resolver_match.app_name == 'reports' and request.resolver_match.url_name == 'regulatory_reports' %}active{% endif %}" href="{% url 'reports:regulatory_reports' %}">
+              <i class="bi bi-file-earmark-medical"></i> CPCB Form IV
+            </a>
+
+          {% elif user.role == 'ADMIN' %}
+            <div class="text-white-50 px-3 pt-3 pb-1 text-uppercase fw-bold" style="font-size: 0.65rem;">Platform Directorate</div>
+            <a class="nav-link {% if request.resolver_match.url_name == 'dashboard_admin' %}active{% endif %}" href="{% url 'dashboard_admin' %}">
+              <i class="bi bi-speedometer2"></i> Control Panel
+            </a>
+            <a class="nav-link {% if request.resolver_match.url_name == 'admin_approvals_queue' %}active{% endif %}" href="{% url 'admin_approvals_queue' %}">
+              <i class="bi bi-check-circle"></i> Approvals Queue
+            </a>
+            <a class="nav-link {% if request.resolver_match.url_name == 'admin_operational_oversight' %}active{% endif %}" href="{% url 'admin_operational_oversight' %}">
+              <i class="bi bi-sliders"></i> Operational Oversight
+            </a>
+
+            <div class="text-white-50 px-3 pt-3 pb-1 text-uppercase fw-bold" style="font-size: 0.65rem;">Stakeholder Directory</div>
+            <a class="nav-link {% if request.resolver_match.url_name in 'admin_user_list,admin_user_detail' %}active{% endif %}" href="{% url 'admin_user_list' %}">
+              <i class="bi bi-people"></i> User Accounts
+            </a>
+            <a class="nav-link {% if request.resolver_match.url_name in 'admin_hospital_list,admin_hospital_detail' %}active{% endif %}" href="{% url 'admin_hospital_list' %}">
+              <i class="bi bi-hospital"></i> Hospitals &amp; Clinics
+            </a>
+            <a class="nav-link {% if request.resolver_match.url_name in 'admin_collector_list,admin_collector_detail' %}active{% endif %}" href="{% url 'admin_collector_list' %}">
+              <i class="bi bi-truck"></i> Waste Collectors
+            </a>
+            <a class="nav-link {% if request.resolver_match.app_name == 'facilities' %}active{% endif %}" href="{% url 'facilities:admin_facility_list' %}">
+              <i class="bi bi-buildings"></i> Treatment Facilities
+            </a>
+
+            <div class="text-white-50 px-3 pt-3 pb-1 text-uppercase fw-bold" style="font-size: 0.65rem;">Chain of Custody</div>
+            <a class="nav-link {% if request.resolver_match.app_name == 'tracking' and request.resolver_match.url_name == 'tracking_dashboard' %}active{% endif %}" href="{% url 'tracking:tracking_dashboard' %}">
+              <i class="bi bi-shield-check"></i> Custody Tracking
+            </a>
+            <a class="nav-link {% if request.resolver_match.app_name == 'tracking' and request.resolver_match.url_name == 'discrepancy_list' %}active{% endif %}" href="{% url 'tracking:discrepancy_list' %}">
+              <i class="bi bi-exclamation-octagon"></i> Audit Exceptions
+            </a>
+
+            <div class="text-white-50 px-3 pt-3 pb-1 text-uppercase fw-bold" style="font-size: 0.65rem;">Analytics &amp; Compliance</div>
+            <a class="nav-link {% if request.resolver_match.app_name == 'reports' and request.resolver_match.url_name == 'admin_analytics' %}active{% endif %}" href="{% url 'reports:admin_analytics' %}">
+              <i class="bi bi-graph-up"></i> Platform Analytics
+            </a>
+            <a class="nav-link {% if request.resolver_match.app_name == 'reports' and request.resolver_match.url_name == 'compliance_monitor' %}active{% endif %}" href="{% url 'reports:compliance_monitor' %}">
+              <i class="bi bi-clipboard-check"></i> 12-Point Audit Console
+            </a>
+            <a class="nav-link {% if request.resolver_match.app_name == 'reports' and request.resolver_match.url_name == 'regulatory_reports' %}active{% endif %}" href="{% url 'reports:regulatory_reports' %}">
+              <i class="bi bi-file-earmark-medical"></i> CPCB Statutory Returns
+            </a>
+
+            <div class="text-white-50 px-3 pt-3 pb-1 text-uppercase fw-bold" style="font-size: 0.65rem;">Governance &amp; Settings</div>
+            <a class="nav-link {% if request.resolver_match.url_name == 'admin_platform_config' %}active{% endif %}" href="{% url 'admin_platform_config' %}">
+              <i class="bi bi-gear"></i> Platform Config
+            </a>
+            <a class="nav-link {% if request.resolver_match.url_name == 'admin_audit_logs' %}active{% endif %}" href="{% url 'admin_audit_logs' %}">
+              <i class="bi bi-journal-text"></i> Unified Audit Logs
+            </a>
+            <a class="nav-link {% if request.resolver_match.url_name in 'admin_notifications_center' %}active{% endif %}" href="{% url 'admin_notifications_center' %}">
+              <i class="bi bi-bell"></i> System Alerts
+            </a>
+            <a class="nav-link text-white-50" href="/admin/" target="_blank">
+              <i class="bi bi-shield-lock"></i> Django Admin <i class="bi bi-box-arrow-up-right ms-auto small"></i>
+            </a>
+          {% endif %}
+        </nav>
+      </div>
+
+      <div class="px-3 pt-3 pb-4 border-top border-secondary">
+        <form method="post" action="{% url 'logout' %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-sm btn-outline-white w-100 rounded-pill">
+            <i class="bi bi-box-arrow-right me-1"></i> Sign Out
+          </button>
+        </form>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="col-md-9 col-lg-10 dashboard-main">
+      {% block dashboard_content %}{% endblock %}
+    </main>
+  </div>
+</div>
+{% endblock %}
